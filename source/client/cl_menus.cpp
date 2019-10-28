@@ -28,6 +28,8 @@ enum GameMenuState {
 	GameMenuState_Menu,
 	GameMenuState_Loadout,
 	GameMenuState_Settings,
+
+	GameMenuState_SkyboxEditor,
 };
 
 enum DemoMenuState {
@@ -764,6 +766,12 @@ static void GameMenu() {
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
+		if( cl_devtools->integer != 0 ) {
+			if( ImGui::Button( "Skybox editor", ImVec2( -1, 0 ) ) ) {
+				gamemenu_state = GameMenuState_SkyboxEditor;
+			}
+		}
+
 		if( spectating ) {
 			if( GS_TeamBasedGametype( &client_gs ) ) {
 				ImGui::Columns( 2, NULL, false );
@@ -1039,6 +1047,68 @@ static void GameMenu() {
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();
+
+		ImGui::End();
+	}
+	else if( gamemenu_state == GameMenuState_SkyboxEditor ) {
+		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize/2, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( 300, -1 ) );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+		ImGui::Columns( 2, NULL, false );
+
+		static ImVec4 colors[4] =
+		{
+			{ 0.625f, 0.25f, 0.625f, 1.f },
+			{ 0.625f, 0.25f, 0.625f, 1.f },
+			{ 0.75f, 0.375f, 0.125f, 1.f },
+			{ 0.75f, 0.375f, 0.125f, 1.f },
+		};
+
+		static const char * button_names[4] = {
+			"SkyGradBtn1",
+			"SkyboxGradPopup1",
+			"SkyGradBtn2",
+			"SkyboxGradPopup2",
+		};
+
+		for( int i = 0; i < 2; i++ ) {
+			const int even = i*2;
+			const int odd = i*2 + 1;
+
+			ImGui::PushFont( cls.medium_font );
+			ImGui::Text( "%s%d", "Gradient ", i+1 );
+			ImGui::PopFont();
+
+			ImGui::NextColumn();
+
+			if ( ImGui::ColorButton( button_names[even], colors[even], 0, ImVec2( 100, 100 ) ) )
+	        {
+	            ImGui::OpenPopup( button_names[odd] );
+	            colors[odd] = colors[even];
+	        }
+
+	        if ( ImGui::BeginPopup( button_names[odd] ) )
+	        {
+	            ImGui::ColorPicker3( "##picker", (float*)&colors[even], ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview );
+	            ImGui::SameLine();
+
+	            ImGui::BeginGroup(); // Lock X position
+	            ImGui::Text( "Current" );
+	            ImGui::ColorButton( "##current", colors[even], ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_AlphaPreviewHalf, ImVec2( 100, 100 ) );
+
+	            ImGui::Spacing();
+
+	            ImGui::Text( "Previous" );
+	            if( ImGui::ColorButton( "##previous", colors[odd], ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_AlphaPreviewHalf, ImVec2( 100, 100 ) ) ) {
+	                colors[even] = colors[odd];
+	            }
+	            ImGui::EndGroup();
+	            ImGui::EndPopup();
+	        }
+
+	        ImGui::NextColumn();
+		}
 
 		ImGui::End();
 	}
