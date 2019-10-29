@@ -28,8 +28,6 @@ enum GameMenuState {
 	GameMenuState_Menu,
 	GameMenuState_Loadout,
 	GameMenuState_Settings,
-
-	GameMenuState_SkyboxEditor,
 };
 
 enum DemoMenuState {
@@ -64,6 +62,16 @@ static bool selected_weapons[ WEAP_TOTAL ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
+
+static void DevButton( bool active ) {
+	if( active ) {
+		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.125f, 0.625f, 0.25f, 1.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.25f, 0.75f, 0.25f, 1.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.25f, 0.5f, 0.25f, 1.f ) );
+	} else {
+		ImGui::PopStyleColor( 3 );
+	}
+}
 
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
@@ -656,10 +664,12 @@ static void MainMenu() {
 
 		ImGui::SameLine();
 
+		DevButton( true );
 		if( ImGui::Button( "Particle editor" ) ) {
 			mainmenu_state = MainMenuState_ParticleEditor;
 			ResetParticleEditor();
 		}
+		DevButton( false );
 	}
 
 	ImGui::Separator();
@@ -747,7 +757,6 @@ static bool WeaponButton( int cash, int weapon, ImVec2 size, Vec4 * tint ) {
 	return ImGui::ImageButton( texture, size, half_pixel, 1.0f - half_pixel, 0, vec4_black, *tint );
 }
 
-
 static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
 	bool ready = false;
@@ -767,8 +776,27 @@ static void GameMenu() {
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
 		if( cl_devtools->integer != 0 ) {
+			DevButton( true );
 			if( ImGui::Button( "Skybox editor", ImVec2( -1, 0 ) ) ) {
-				gamemenu_state = GameMenuState_SkyboxEditor;
+				ImGui::OpenPopup( "SkyboxEditor" );
+			}
+			DevButton( false );
+
+			if( ImGui::BeginPopup( "SkyboxEditor" ) ) {
+				static Vec4 colors[4] =
+				{
+					{ 0.625f, 0.25f, 0.625f, 1.f },
+					{ 0.625f, 0.25f, 0.625f, 1.f },
+					{ 0.75f, 0.375f, 0.125f, 1.f },
+					{ 0.75f, 0.375f, 0.125f, 1.f },
+				};
+
+				for( int i = 0; i < 4; i++ ) {
+					String<16> picker_name = "Gradient 1";
+					picker_name[picker_name.len() - 1] += i;
+					ImGui::ColorEdit3( picker_name.c_str(), colors[i].ptr() );
+				}
+				ImGui::EndPopup();
 			}
 		}
 
@@ -1039,76 +1067,11 @@ static void GameMenu() {
 		ImGui::PopStyleColor();
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
-		ImVec2 pos = ImGui::GetIO().DisplaySize;
-		pos.x *= 0.5f;
-		pos.y *= 0.5f;
-		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 600, 500 ) );
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();
-
-		ImGui::End();
-	}
-	else if( gamemenu_state == GameMenuState_SkyboxEditor ) {
-		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize/2, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 300, -1 ) );
-		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
-
-		ImGui::Columns( 2, NULL, false );
-
-		static ImVec4 colors[4] =
-		{
-			{ 0.625f, 0.25f, 0.625f, 1.f },
-			{ 0.625f, 0.25f, 0.625f, 1.f },
-			{ 0.75f, 0.375f, 0.125f, 1.f },
-			{ 0.75f, 0.375f, 0.125f, 1.f },
-		};
-
-		static const char * button_names[4] = {
-			"SkyGradBtn1",
-			"SkyboxGradPopup1",
-			"SkyGradBtn2",
-			"SkyboxGradPopup2",
-		};
-
-		for( int i = 0; i < 2; i++ ) {
-			const int even = i*2;
-			const int odd = i*2 + 1;
-
-			ImGui::PushFont( cls.medium_font );
-			ImGui::Text( "%s%d", "Gradient ", i+1 );
-			ImGui::PopFont();
-
-			ImGui::NextColumn();
-
-			if ( ImGui::ColorButton( button_names[even], colors[even], 0, ImVec2( 100, 100 ) ) )
-	        {
-	            ImGui::OpenPopup( button_names[odd] );
-	            colors[odd] = colors[even];
-	        }
-
-	        if ( ImGui::BeginPopup( button_names[odd] ) )
-	        {
-	            ImGui::ColorPicker3( "##picker", (float*)&colors[even], ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview );
-	            ImGui::SameLine();
-
-	            ImGui::BeginGroup(); // Lock X position
-	            ImGui::Text( "Current" );
-	            ImGui::ColorButton( "##current", colors[even], ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_AlphaPreviewHalf, ImVec2( 100, 100 ) );
-
-	            ImGui::Spacing();
-
-	            ImGui::Text( "Previous" );
-	            if( ImGui::ColorButton( "##previous", colors[odd], ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_AlphaPreviewHalf, ImVec2( 100, 100 ) ) ) {
-	                colors[even] = colors[odd];
-	            }
-	            ImGui::EndGroup();
-	            ImGui::EndPopup();
-	        }
-
-	        ImGui::NextColumn();
-		}
 
 		ImGui::End();
 	}
