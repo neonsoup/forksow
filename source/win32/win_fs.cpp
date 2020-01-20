@@ -267,6 +267,7 @@ int Sys_FS_FileNo( FILE *fp ) {
 struct ListDirHandleImpl {
 	HANDLE handle;
 	WIN32_FIND_DATAA * ffd;
+	Allocator * a;
 	bool first;
 };
 
@@ -284,20 +285,23 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 	return opaque;
 }
 
-ListDirHandle BeginListDir( const char * path ) {
+ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	ListDirHandleImpl handle;
 	handle.handle = NULL;
+	handle.a = a;
 	handle.first = true;
 
-	if( strlen( path ) > MAX_PATH - 3 )
+	int wide_len = MultiByteToWideChar( CP_UTF8, 0, path, -1, NULL, 0 );
+	if( wide_len == 0 )
 		return ImplToOpaque( handle );
 
-	handle.ffd = ( WIN32_FIND_DATAA * ) malloc( sizeof( *handle.ffd ) );
-	if( handle.ffd == NULL )
-		return ImplToOpaque( handle );
+	wchar_t * wide_path = ALLOC_MANY( a, wchar_t, wide_len + 2 );
+	MultiByteToWideChar( CP_UTF8, 0, path, -1, wide_path, wide_len );
+	wcscat( wide_path, L"/*" );
 
-	String< MAX_PATH > path_and_wildcard( "{}/*", path );
-	handle.handle = FindFirstFileA( path_and_wildcard.c_str(), handle.ffd );
+	handle.ffd = ALLOC( a, WIN32_FIND_DATAA );
+
+	handle.handle = FindFirstFileW( wide_path, handle.ffd );
 	if( handle.handle == INVALID_HANDLE_VALUE ) {
 		handle.handle = NULL;
 	}
@@ -311,9 +315,9 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 		return false;
 
 	if( !handle.first ) {
-		if( FindNextFileA( handle.handle, handle.ffd ) == 0 ) {
+		if( FindNextFileW( handle.handle, handle.ffd ) == 0 ) {
 			FindClose( handle.handle );
-			free( handle.ffd );
+			FREE( handle.a, handle.ffd );
 			return false;
 		}
 	}
