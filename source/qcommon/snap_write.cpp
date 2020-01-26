@@ -357,7 +357,7 @@ Build a client frame structure
 * The client will interpolate the view position,
 * so we can't use a single PVS point
 */
-static void SNAP_FatPVS( cmodel_state_t *cms, const vec3_t org, uint8_t *fatpvs ) {
+static void SNAP_FatPVS( CollisionModel *cms, const vec3_t org, uint8_t *fatpvs ) {
 	memset( fatpvs, 0, CM_ClusterRowSize( cms ) );
 	CM_MergePVS( cms, org, fatpvs );
 }
@@ -365,7 +365,7 @@ static void SNAP_FatPVS( cmodel_state_t *cms, const vec3_t org, uint8_t *fatpvs 
 /*
 * SNAP_BitsCullEntity
 */
-static bool SNAP_BitsCullEntity( cmodel_state_t *cms, edict_t *ent, uint8_t *bits, int max_clusters ) {
+static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bits, int max_clusters ) {
 	int i, l;
 
 	// too many leafs for individual check, go by headnode
@@ -449,7 +449,7 @@ static float SNAP_GainForAttenuation( float dist, float attenuation ) {
 /*
 * SNAP_SnapCullSoundEntity
 */
-static bool SNAP_SnapCullSoundEntity( cmodel_state_t *cms, edict_t *ent, const vec3_t listener_origin, 
+static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin, 
 									float attenuation ) {
 	float gain, dist;
 
@@ -470,7 +470,7 @@ static bool SNAP_SnapCullSoundEntity( cmodel_state_t *cms, edict_t *ent, const v
 /*
 * SNAP_SnapCullEntity
 */
-static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame, 
+static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame, 
 								const vec3_t vieworg, int viewarea, uint8_t *fatpvs ) {
 	uint8_t *areabits;
 	bool snd_cull_only;
@@ -547,7 +547,7 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 /*
 * SNAP_AddEntitiesVisibleAtOrigin
 */
-static void SNAP_AddEntitiesVisibleAtOrigin( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
+static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	edict_t *ent;
@@ -601,7 +601,7 @@ static void SNAP_AddEntitiesVisibleAtOrigin( cmodel_state_t *cms, ginfo_t *gi, e
 /*
 * SNAP_BuildSnapEntitiesList
 */
-static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
+static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	int leafnum, clientarea;
@@ -642,7 +642,7 @@ static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_
 * Decides which entities are going to be visible to the client, and
 * copies off the playerstat and areabits.
 */
-void SNAP_BuildClientFrameSnap( cmodel_state_t *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
+void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 								client_t *client,
 								SyncGameState *gameState, client_entities_t *client_entities,
 								mempool_t *mempool ) {

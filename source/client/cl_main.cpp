@@ -509,7 +509,7 @@ void CL_ResetServerCount( void ) {
 */
 void CL_ClearState( void ) {
 	if( cl.cms ) {
-		CM_ReleaseReference( cl.cms );
+		CM_Free( cl.cms );
 	}
 
 	if( cl.frames_areabits ) {
@@ -1126,39 +1126,25 @@ static int precache_tex;
 #define ENV_CNT ( CS_PLAYERINFOS + MAX_CLIENTS * PLAYER_MULT )
 #define TEXTURE_CNT ( ENV_CNT + 1 )
 
-static unsigned int CL_LoadMap( const char *name ) {
-	int i;
-	int areas;
+static void CL_LoadMap( const char *name ) {
+	Span< const char > ext = FileExtension( name );
 
-	unsigned int map_checksum;
+	u64 hash = Hash64( name, strlen( name ) - ext.n );
 
-	assert( !cl.cms );
-
-	// if local server is running, share the collision model,
-	// increasing the ref counter
-	if( Com_ServerState() ) {
-		cl.cms = Com_ServerCM( &map_checksum );
-	} else {
-		cl.cms = CM_New( NULL );
-		CM_LoadMap( cl.cms, name, true, &map_checksum );
-	}
-
-	assert( cl.cms );
+	cl.cms = FindMap( StringHash( hash ) )->cms;
 
 	// allocate memory for areabits
-	areas = CM_NumAreas( cl.cms );
+	int areas = CM_NumAreas( cl.cms );
 	areas *= CM_AreaRowSize( cl.cms );
 
 	cl.frames_areabits = ( uint8_t * ) Mem_ZoneMalloc( UPDATE_BACKUP * areas );
-	for( i = 0; i < UPDATE_BACKUP; i++ ) {
+	for( int i = 0; i < UPDATE_BACKUP; i++ ) {
 		cl.snapShots[i].areabytes = areas;
 		cl.snapShots[i].areabits = cl.frames_areabits + i * areas;
 	}
 
 	// check memory integrity
 	Mem_DebugCheckSentinelsGlobal();
-
-	return map_checksum;
 }
 
 void CL_RequestNextDownload( void ) {
@@ -1224,10 +1210,10 @@ void CL_RequestNextDownload( void ) {
 	if( precache_check == ENV_CNT ) {
 		cls.download.successCount = 0;
 
-		unsigned map_checksum = CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
-		if( map_checksum != (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) ) {
+		CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
+		if( cl.cms->checksum != strtonum( cl.configstrings[CS_MAPCHECKSUM], 0, U32_MAX, NULL ) ) {
 			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'",
-					   map_checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
+					   cl.cms->checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
 			return;
 		}
 
@@ -2015,6 +2001,21 @@ void CL_Init( void ) {
 
 	VID_Init();
 
+	InitRenderer();
+	InitMaps();
+
+	if( !S_Init() ) {
+		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
+	}
+
+	// TODO: what is this?
+	if( cls.cgameActive ) {
+		CL_GameModule_Init();
+		CL_SetKeyDest( key_game );
+	} else {
+		CL_SetKeyDest( key_menu );
+	}
+
 	CL_ClearState();
 
 	// IPv4
@@ -2079,6 +2080,8 @@ void CL_Shutdown( void ) {
 
 	CL_GameModule_Shutdown();
 	S_Shutdown();
+	ShutdownMaps();
+	ShutdownRenderer();
 	VID_Shutdown();
 
 	CL_ShutdownAsyncStream();

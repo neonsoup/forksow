@@ -305,7 +305,7 @@ typedef struct {
 
 	const Model * modelDraw[MAX_MODELS];
 
-	const MapMetadata * map;
+	const Map * map;
 
 	// force models
 	PlayerModelMetadata *teamModelInfo[2];

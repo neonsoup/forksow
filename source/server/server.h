@@ -223,7 +223,7 @@ typedef struct {
 
 	server_static_demo_t demo;
 
-	cmodel_state_t *cms;                // passed to CM-functions
+	CollisionModel *cms;                // passed to CM-functions
 } server_static_t;
 
 typedef struct {

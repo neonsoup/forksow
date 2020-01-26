@@ -138,20 +138,6 @@ void VID_Init() {
 
 	VID_WindowInit( mode );
 	UpdateVidModeCvar();
-
-	InitRenderer();
-
-	if( !S_Init() ) {
-		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
-	}
-
-	// TODO: what is this?
-	if( cls.cgameActive ) {
-		CL_GameModule_Init();
-		CL_SetKeyDest( key_game );
-	} else {
-		CL_SetKeyDest( key_menu );
-	}
 }
 
 void CL_ForceVsync( bool force ) {
@@ -162,9 +148,6 @@ void CL_ForceVsync( bool force ) {
 }
 
 void VID_Shutdown() {
-	ShutdownRenderer();
-
 	VID_SetVideoMode( startup_video_mode );
-
 	VID_WindowShutdown();
 }

@@ -55,9 +55,6 @@ static int server_state = CA_UNINITIALIZED;
 static int client_state = CA_UNINITIALIZED;
 static bool demo_playing = false;
 
-struct cmodel_state_s *server_cms = NULL;
-unsigned server_map_checksum = 0;
-
 /*
 ============================================================================
 
@@ -294,7 +291,6 @@ void Com_Quit( void ) {
 	Sys_Quit();
 }
 
-
 /*
 * Com_ServerState
 */
@@ -307,23 +303,6 @@ int Com_ServerState( void ) {
 */
 void Com_SetServerState( int state ) {
 	server_state = state;
-}
-
-/*
-* Com_ServerCM
-*/
-struct cmodel_state_s *Com_ServerCM( unsigned *checksum ) {
-	*checksum = server_map_checksum;
-	CM_AddReference( server_cms );
-	return server_cms;
-}
-
-/*
-* Com_SetServerCM
-*/
-void Com_SetServerCM( struct cmodel_state_s *cms, unsigned checksum ) {
-	server_cms = cms;
-	server_map_checksum = checksum;
 }
 
 int Com_ClientState( void ) {
@@ -659,14 +638,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 		extratime = ( extratime + (float)realMsec * timescale->value ) - (float)gameMsec;
 	} else {
 		gameMsec = realMsec;
-	}
-
-	if( com_showtrace->integer ) {
-		Com_Printf( "%4i traces %4i brush traces %4i points\n",
-					c_traces, c_brush_traces, c_pointcontents );
-		c_traces = 0;
-		c_brush_traces = 0;
-		c_pointcontents = 0;
 	}
 
 	wswcurl_perform();

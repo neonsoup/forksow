@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/csprng.h"
+#include "qcommon/hash.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t svs;                // persistant server info
@@ -118,8 +119,7 @@ void SV_SetServerConfigStrings( void ) {
 * SV_SpawnServer
 * Change the server to a new map, taking all connected clients along with it.
 */
-static void SV_SpawnServer( const char *server, bool devmap ) {
-	unsigned checksum;
+static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	int i;
 
 	if( devmap ) {
@@ -127,7 +127,7 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	}
 	Cvar_FixCheatVars();
 
-	Com_Printf( "SpawnServer: %s\n", server );
+	Com_Printf( "SpawnServer: %s\n", mapname );
 
 	svs.spawncount++;   // any partially connected client will be restarted
 
@@ -140,16 +140,23 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	svs.realtime = Sys_Milliseconds();
 	svs.gametime = 0;
 
-	Q_strncpyz( sv.mapname, server, sizeof( sv.mapname ) );
+	Q_strncpyz( sv.mapname, mapname, sizeof( sv.mapname ) );
 
 	SV_SetServerConfigStrings();
 
 	sv.nextSnapTime = 1000;
 
-	snprintf( sv.configstrings[CS_WORLDMODEL], sizeof( sv.configstrings[CS_WORLDMODEL] ), "maps/%s.bsp", server );
-	CM_LoadMap( svs.cms, sv.configstrings[CS_WORLDMODEL], false, &checksum );
+	snprintf( sv.configstrings[CS_WORLDMODEL], sizeof( sv.configstrings[CS_WORLDMODEL] ), "maps/%s.bsp", mapname );
 
-	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%i", checksum );
+	u8 * buf;
+	int length = FS_LoadFile( sv.configstrings[ CS_WORLDMODEL ], ( void ** ) &buf, NULL, 0 );
+	if( buf == NULL ) {
+		Com_Error( ERR_DROP, "Couldn't load %s", sv.configstrings[ CS_WORLDMODEL ] );
+	}
+
+	svs.cms = CM_LoadMap( Span< const u8 >( buf, length ), Hash32( sv.configstrings[ CS_WORLDMODEL ] ) );
+
+	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%u", svs.cms->checksum );
 
 	// reserve the first modelIndexes for inline models
 	for( i = 1; i < CM_NumInlineModels( svs.cms ); i++ )
@@ -175,8 +182,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	ge->RunFrame( svc.snapFrameTime );
 
 	SV_CreateBaseline(); // create a baseline for more efficient communications
-
-	Com_SetServerCM( svs.cms, checksum );
 
 	// all precaches are complete
 	sv.state = ss_game;
@@ -278,10 +283,6 @@ void SV_InitGame( void ) {
 		ent->s.number = i + 1;
 		svs.clients[i].edict = ent;
 	}
-
-	// load the map
-	assert( !svs.cms );
-	svs.cms = CM_New( NULL );
 }
 
 /*
@@ -355,13 +356,9 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	}
 
 	if( svs.cms ) {
-		// CM_ReleaseReference will take care of freeing up the memory
-		// if there are no other modules referencing the collision model
-		CM_ReleaseReference( svs.cms );
+		CM_Free( svs.cms );
 		svs.cms = NULL;
 	}
-
-	Com_SetServerCM( NULL, 0 );
 
 	memset( &sv, 0, sizeof( sv ) );
 	Com_SetServerState( sv.state );

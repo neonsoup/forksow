@@ -30,6 +30,7 @@
 #include "ui.h"
 #include "input.h"
 #include "keys.h"
+#include "maps.h"
 #include "console.h"
 #include "sound.h"
 
@@ -60,7 +61,7 @@ typedef struct {
 	snapshot_t snapShots[CMD_BACKUP];
 	uint8_t *frames_areabits;
 
-	cmodel_state_t *cms;
+	CollisionModel *cms;
 
 	// the client maintains its own idea of view angles, which are
 	// sent to the server each frame.  It is cleared to 0 upon entering each level.

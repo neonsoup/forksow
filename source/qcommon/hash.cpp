@@ -29,14 +29,6 @@ u64 Hash64( const char * str ) {
 	return Hash64( str, strlen( str ) );
 }
 
-u32 Hash32( Span< const char > str ) {
-	return Hash32( str.ptr, str.n );
-}
-
-u64 Hash64( Span< const char > str ) {
-	return Hash64( str.ptr, str.n );
-}
-
 #ifdef PUBLIC_BUILD
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );
