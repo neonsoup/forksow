@@ -59,7 +59,6 @@ typedef struct {
 	int currentSnapNum;
 	int previousSnapNum;
 	snapshot_t snapShots[CMD_BACKUP];
-	uint8_t *frames_areabits;
 
 	CollisionModel *cms;
 

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/csprng.h"
+#include "qcommon/compression.h"
 #include "qcommon/hash.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
@@ -66,7 +67,16 @@ static int SV_FindIndex( const char *name, int start, int max, bool create ) {
 
 
 int SV_ModelIndex( const char *name ) {
-	return SV_FindIndex( name, CS_MODELS, MAX_MODELS, true );
+	if( name[ 0 ] == '*' ) {
+		char lol[ MAX_CONFIGSTRING_CHARS ];
+		Q_strncpyz( lol, sv.configstrings[ CS_WORLDMODEL ], sizeof( lol ) );
+		COM_StripExtension( lol );
+		Q_strncatz( lol, name, sizeof( lol ) );
+		return SV_FindIndex( lol, CS_MODELS, MAX_MODELS, true );
+	}
+	else {
+		return SV_FindIndex( name, CS_MODELS, MAX_MODELS, true );
+	}
 }
 
 int SV_SoundIndex( const char *name ) {
@@ -151,16 +161,29 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	u8 * buf;
 	int length = FS_LoadFile( sv.configstrings[ CS_WORLDMODEL ], ( void ** ) &buf, NULL, 0 );
 	if( buf == NULL ) {
-		Com_Error( ERR_DROP, "Couldn't load %s", sv.configstrings[ CS_WORLDMODEL ] );
+		Com_Error( ERR_FATAL, "Couldn't load %s", sv.configstrings[ CS_WORLDMODEL ] );
 	}
 
-	svs.cms = CM_LoadMap( Span< const u8 >( buf, length ), Hash32( sv.configstrings[ CS_WORLDMODEL ] ) );
+	Span< const u8 > compressed = Span< const u8 >( buf, length );
+	Span< u8 > decompressed;
+	defer { FREE( sys_allocator, decompressed.ptr ); };
+	bool ok = Decompress( sv.configstrings[ CS_WORLDMODEL ], sys_allocator, compressed, &decompressed );
+	if( !ok ) {
+		Com_Error( ERR_FATAL, "Couldn't decompress %s", sv.configstrings[ CS_WORLDMODEL ] );
+	}
+
+	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
+	svs.cms = CM_LoadMap( data );
 
 	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%u", svs.cms->checksum );
 
 	// reserve the first modelIndexes for inline models
-	for( i = 1; i < CM_NumInlineModels( svs.cms ); i++ )
+	for( i = 1; i < CM_NumInlineModels( svs.cms ); i++ ) {
+		char buf[ MAX_CONFIGSTRING_CHARS ];
+		snprintf( buf, sizeof( buf ), "*%d", i );
+		SV_ModelIndex( buf );
 		snprintf( sv.configstrings[CS_MODELS + i], sizeof( sv.configstrings[CS_MODELS + i] ), "*%i", i );
+	}
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );

@@ -234,9 +234,6 @@ static void CG_RegisterModels( void ) {
 
 			Q_strncpyz( cgs.weaponModels[cgs.numWeaponModels], name + 1, sizeof( cgs.weaponModels[cgs.numWeaponModels] ) );
 			cgs.numWeaponModels++;
-		} else if( name[0] == '*' ) {
-			u64 hash = Hash64( name, strlen( name ), cgs.map->base_hash );
-			cgs.modelDraw[i] = FindModel( StringHash( hash ) );
 		} else {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
@@ -447,14 +444,6 @@ void CG_Precache( void ) {
 
 	cgs.precacheStart = cgs.precacheCount;
 	cgs.precacheStartMsec = Sys_Milliseconds();
-
-	{
-		const char * name = cgs.configStrings[ CS_WORLDMODEL ];
-		Span< const char > ext = FileExtension( name );
-
-		u64 hash = Hash64( name, strlen( name ) - ext.n );
-		cgs.map = FindMap( StringHash( hash ) );
-	}
 
 	CG_RegisterModels();
 	if( cgs.precacheModelsStart < MAX_MODELS ) {

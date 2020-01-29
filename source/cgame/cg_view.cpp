@@ -630,7 +630,6 @@ static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
 	rd->fov_y = view->fov_y;
 
 	rd->time = cl.serverTime;
-	rd->areabits = cg.frame.areabits;
 
 	rd->minLight = 0.3f;
 
@@ -961,6 +960,14 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	}
 
 	{
+		const char * name = cgs.configStrings[ CS_WORLDMODEL ];
+		Span< const char > ext = FileExtension( name );
+
+		u64 hash = Hash64( name, strlen( name ) - ext.n );
+		cgs.map = FindMap( StringHash( hash ) );
+	}
+
+	{
 		// moved this from CG_Init here
 		cgs.extrapolationTime = extrapolationTime;
 
@@ -998,16 +1005,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	}
 
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
-
-	if( !cgs.configStrings[CS_WORLDMODEL][0] ) {
-		CG_AddLocalSounds();
-
-		// trap_R_DrawStretchPic( 0, 0, frame_static.viewport_width, frame_static.viewport_height, 0, 0, 1, 1, colorBlack, cgs.shaderWhite );
-
-		S_Update( Vec3( 0 ), Vec3( 0 ), axis_identity );
-
-		return;
-	}
 
 	if( cg_fov->modified ) {
 		if( cg_fov->value < MIN_FOV ) {
@@ -1061,8 +1058,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	CG_AddLocalSounds();
 
 	CG_SetupRefDef( &cg.view, rd );
-
-	cg.oldAreabits = true;
 
 	S_Update( FromQF3( cg.view.origin ), FromQF3( cg.view.velocity ), cg.view.axis );
 

@@ -142,8 +142,20 @@ void SCR_RegisterConsoleMedia() {
 * SCR_RenderView
 */
 static void SCR_RenderView() {
-	// frame is not valid until we load the CM data
-	if( cl.cms != NULL ) {
+	const char * map = cl.configstrings[ CS_WORLDMODEL ];
+	if( strlen( map ) > 0 ) {
+		Span< const char > ext = FileExtension( map );
+		u64 hash = Hash64( map, strlen( map ) - ext.n );
+
+		cl.cms = FindMap( StringHash( hash ) )->cms;
+		if( cl.cms->checksum != strtonum( cl.configstrings[CS_MAPCHECKSUM], 0, U32_MAX, NULL ) ) {
+			// Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'",
+			// 		   cl.cms->checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
+			Com_Printf( "Local map version differs from server: %u != '%u'\n",
+					   cl.cms->checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
+			// return;
+		}
+
 		CL_GameModule_RenderView();
 	}
 }

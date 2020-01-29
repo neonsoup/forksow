@@ -508,14 +508,6 @@ void CL_ResetServerCount( void ) {
 * CL_ClearState
 */
 void CL_ClearState( void ) {
-	if( cl.cms ) {
-		CM_Free( cl.cms );
-	}
-
-	if( cl.frames_areabits ) {
-		Mem_Free( cl.frames_areabits );
-	}
-
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );
@@ -1126,27 +1118,6 @@ static int precache_tex;
 #define ENV_CNT ( CS_PLAYERINFOS + MAX_CLIENTS * PLAYER_MULT )
 #define TEXTURE_CNT ( ENV_CNT + 1 )
 
-static void CL_LoadMap( const char *name ) {
-	Span< const char > ext = FileExtension( name );
-
-	u64 hash = Hash64( name, strlen( name ) - ext.n );
-
-	cl.cms = FindMap( StringHash( hash ) )->cms;
-
-	// allocate memory for areabits
-	int areas = CM_NumAreas( cl.cms );
-	areas *= CM_AreaRowSize( cl.cms );
-
-	cl.frames_areabits = ( uint8_t * ) Mem_ZoneMalloc( UPDATE_BACKUP * areas );
-	for( int i = 0; i < UPDATE_BACKUP; i++ ) {
-		cl.snapShots[i].areabytes = areas;
-		cl.snapShots[i].areabits = cl.frames_areabits + i * areas;
-	}
-
-	// check memory integrity
-	Mem_DebugCheckSentinelsGlobal();
-}
-
 void CL_RequestNextDownload( void ) {
 	char tempname[MAX_CONFIGSTRING_CHARS + 4];
 
@@ -1210,13 +1181,6 @@ void CL_RequestNextDownload( void ) {
 	if( precache_check == ENV_CNT ) {
 		cls.download.successCount = 0;
 
-		CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
-		if( cl.cms->checksum != strtonum( cl.configstrings[CS_MAPCHECKSUM], 0, U32_MAX, NULL ) ) {
-			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'",
-					   cl.cms->checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
-			return;
-		}
-
 		precache_check = TEXTURE_CNT;
 	}
 
@@ -1244,8 +1208,6 @@ void CL_RequestNextDownload( void ) {
 void CL_Precache_f( void ) {
 	if( cls.demo.playing ) {
 		if( !cls.demo.play_jump ) {
-			CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
-
 			CL_GameModule_Init();
 		} else {
 			CL_GameModule_Reset();

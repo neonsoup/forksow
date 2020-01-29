@@ -169,7 +169,7 @@ struct CollisionModel {
 	int *map_face_checkcheckouts;
 };
 
-CollisionModel *CM_LoadMap( const char * path, Span< const u8 > data, u64 hash );
+CollisionModel *CM_LoadMap( Span< const u8 > data );
 void CM_Free( CollisionModel *cms );
 
 struct cmodel_s *CM_InlineModel( CollisionModel *cms, int num ); // 1, 2, etc

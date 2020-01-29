@@ -333,7 +333,6 @@ typedef struct {
 
 	snapshot_t frame, oldFrame;
 	bool frameSequenceRunning;
-	bool oldAreabits;
 	bool fireEvents;
 	bool firstFrame;
 

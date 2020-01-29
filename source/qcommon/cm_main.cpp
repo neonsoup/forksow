@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/cm_local.h"
 
-#include "zstd/zstd.h"
-
 static bool cm_initialized = false;
 
 mempool_t *cmap_mempool;
@@ -168,7 +166,7 @@ MAP LOADING
 * CM_LoadMap
 * Loads in the map and all submodels
 */
-CollisionModel *CM_LoadMap( const char * path, Span< const u8 > data, u64 hash ) {
+CollisionModel *CM_LoadMap( Span< const u8 > data ) {
 	ZoneScoped;
 
 	CollisionModel * cms = ( CollisionModel * ) Mem_Alloc( cmap_mempool, sizeof( CollisionModel ) );
@@ -177,7 +175,7 @@ CollisionModel *CM_LoadMap( const char * path, Span< const u8 > data, u64 hash )
 	CM_InitOctagonHull( cms );
 	CM_Clear( cms );
 
-	CM_LoadQ3BrushModel( cms, path, data );
+	CM_LoadQ3BrushModel( cms, data );
 
 	if( cms->numareas ) {
 		cms->map_areas = ( carea_t * ) Mem_Alloc( cmap_mempool, cms->numareas * sizeof( *cms->map_areas ) );

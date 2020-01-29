@@ -217,10 +217,11 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 				}
 			}
 
-			for( i = 0; i < maxtarget; i++ )
+			for( i = 0; i < maxtarget; i++ ) {
 				if( targets[i >> 3] & ( 1 << ( i & 7 ) ) ) {
 					positions[i]++;
 				}
+			}
 		}
 	} while( command );
 }
@@ -231,7 +232,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
 								  SyncEntityState *baselines, client_entities_t *client_entities ) {
 	client_snapshot_t *frame, *oldframe;
-	int flags, i, index, pos, length;
+	int flags, i, index;
 
 	// this is the frame we are creating
 	frame = &client->snapShots[frameNum & UPDATE_MASK];
@@ -266,9 +267,6 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	}
 
 	MSG_WriteUint8( msg, svc_frame );
-
-	pos = msg->cursize;
-	MSG_WriteInt16( msg, 0 );       // we will write length here
 
 	MSG_WriteIntBase128( msg, gameTime ); // serverTimeStamp
 	MSG_WriteUintBase128( msg, frameNum );
@@ -315,10 +313,6 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	}
 	MSG_WriteInt16( msg, -1 );
 
-	// send over the areabits
-	MSG_WriteUint8( msg, frame->areabytes );
-	MSG_WriteData( msg, frame->areabits, frame->areabytes );
-
 	SNAP_WriteDeltaGameStateToClient( oldframe, frame, msg );
 
 	// delta encode the playerstate
@@ -333,12 +327,6 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 
 	// delta encode the entities
 	SNAP_EmitPacketEntities( gi, oldframe, frame, msg, baselines, client_entities->entities, client_entities->num_entities );
-
-	// write length into reserved space
-	length = msg->cursize - pos - 2;
-	msg->cursize = pos;
-	MSG_WriteInt16( msg, length );
-	msg->cursize += length;
 
 	client->lastSentFrameNum = frameNum;
 }

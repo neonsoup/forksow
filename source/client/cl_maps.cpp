@@ -1,11 +1,10 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/assets.h"
+#include "qcommon/compression.h"
 #include "qcommon/hashtable.h"
 #include "client/maps.h"
 #include "client/renderer/model.h"
-
-#include "zstd/zstd.h"
 
 constexpr u32 MAX_MAPS = 128;
 
@@ -31,33 +30,16 @@ void InitMaps() {
 
 		Span< u8 > decompressed;
 		defer { FREE( sys_allocator, decompressed.ptr ); };
-
-		u32 zstd_magic = ZSTD_MAGICNUMBER;
-		if( memcmp( compressed.ptr, &zstd_magic, sizeof( zstd_magic ) ) == 0 ) {
-			unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed.ptr, compressed.n );
-			if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
-				Com_Printf( S_COLOR_RED "Corrupt BSP %s\n", path );
-				continue;
-			}
-
-			decompressed = ALLOC_SPAN( sys_allocator, u8, decompressed_size );
-			{
-				ZoneScopedN( "ZSTD_decompress" );
-				size_t r = ZSTD_decompress( decompressed.ptr, decompressed.n, compressed.ptr, compressed.n );
-				if( r != decompressed_size ) {
-					Com_Printf( S_COLOR_RED "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
-					continue;
-				}
-			}
-		}
+		bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
+		if( !ok )
+			continue;
 
 		Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
 
 		if( !LoadBSPRenderData( &maps[ num_maps ], path, data ) )
 			continue;
 
-		StringHash hash = StringHash( path );
-		maps[ num_maps ].cms = CM_LoadMap( path, data, hash.hash );
+		maps[ num_maps ].cms = CM_LoadMap( data );
 		if( maps[ num_maps ].cms == NULL )
 			// TODO: free render data
 			continue;

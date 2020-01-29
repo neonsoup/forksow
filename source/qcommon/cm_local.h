@@ -36,4 +36,4 @@ void    CM_FloodAreaConnections( CollisionModel *cms );
 
 void	CM_BoundBrush( cbrush_t *brush );
 
-void CM_LoadQ3BrushModel( CollisionModel *cms, const char * path, Span< const u8 > data );
+void CM_LoadQ3BrushModel( CollisionModel *cms, Span< const u8 > data );

@@ -484,6 +484,9 @@ static void G_RunClients( void ) {
 * Advances the world
 */
 void G_RunFrame( unsigned int msec ) {
+	if( break1 ) trap_ConfigString(  CS_WORLDMODEL, "maps/cocaine.bsp" );
+	if( break2 ) trap_ConfigString(  CS_WORLDMODEL, "maps/dust.bsp" );
+	if( break3 ) trap_ConfigString(  CS_WORLDMODEL, "maps/carfentanil.bsp" );
 	G_CheckCvars();
 
 	game.frametime = msec;

@@ -343,12 +343,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	for( i = 0; i < frame->numEntities; i++ )
 		CG_NewPacketEntityState( &frame->parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )] );
 
-	if( lerpframe && ( memcmp( cg.oldFrame.areabits, cg.frame.areabits, cg.frame.areabytes ) == 0 ) ) {
-		cg.oldAreabits = true;
-	} else {
-		cg.oldAreabits = false;
-	}
-
 	if( !cgs.precacheDone || !cg.frame.valid ) {
 		return false;
 	}
