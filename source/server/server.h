@@ -286,10 +286,6 @@ extern cvar_t *sv_demodir;
 //
 // sv_main.c
 //
-int SV_ModelIndex( const char *name );
-int SV_SoundIndex( const char *name );
-int SV_ImageIndex( const char *name );
-
 void SV_WriteClientdataToMessage( client_t *client, msg_t *msg );
 
 void SV_InitOperatorCommands( void );

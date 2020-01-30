@@ -55,7 +55,6 @@ Entity @defuser = null;
 uint defuseProgress;
 
 Entity @bombModel;
-Entity @bombDecal;
 Entity @bombHud;
 
 void show( Entity @ent ) {
@@ -89,13 +88,6 @@ void bombInit() {
 	bombModelCreate();
 
 	// don't set ~SVF_NOCLIENT yet
-	@bombDecal = @G_SpawnEntity( "flag_indicator_decal" );
-	bombDecal.type = ET_DECAL;
-	bombDecal.origin2 = VEC_UP; // normal
-	bombDecal.solid = SOLID_NOT;
-	bombDecal.modelindex = imgBombDecal;
-	bombDecal.svflags |= SVF_TRANSMITORIGIN2; // so the normal actually gets used
-
 	@bombHud = @G_SpawnEntity( "hud_bomb" );
 	bombHud.type = ET_HUD;
 	bombHud.solid = SOLID_NOT;
@@ -109,7 +101,6 @@ void bombPickUp() {
 	bombCarrier.modelindex2 = modelBombBackpack;
 
 	hide( @bombModel );
-	hide( @bombDecal );
 	hide( @bombHud );
 
 	bombModel.moveType = MOVETYPE_NONE;
@@ -183,7 +174,6 @@ void bombDrop( BombDrop drop_reason ) {
 	bombModel.origin = trace.endPos;
 	bombModel.velocity = velocity;
 	show( @bombModel );
-	hide( @bombDecal );
 
 	bombCarrier.effects &= ~EF_CARRIER;
 	bombCarrier.modelindex2 = 0;
@@ -212,11 +202,6 @@ void bombStartPlanting( cBombSite @site ) {
 	bombModel.origin = trace.endPos;
 	show( @bombModel );
 
-	bombDecal.origin = trace.endPos;
-	bombDecal.svflags |= SVF_ONLYTEAM;
-	bombDecal.radius = 0;
-	show( @bombDecal );
-
 	bombHud.origin = trace.endPos + Vec3( 0, 0, BOMB_HUD_OFFSET );
 	bombHud.svflags |= SVF_ONLYTEAM;
 	bombHud.radius = BombDown_Planting;
@@ -241,7 +226,6 @@ void bombPlanted() {
 	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
-	bombDecal.svflags &= ~SVF_ONLYTEAM;
 	bombHud.svflags &= ~SVF_ONLYTEAM;
 
 	announce( Announcement_Armed );
@@ -257,7 +241,6 @@ void bombDefused() {
 	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.modelindex = modelBombModel;
 
-	hide( @bombDecal );
 	hide( @bombHud );
 
 	announce( Announcement_Defused );
@@ -281,7 +264,6 @@ void bombExplode() {
 	// do this first else the attackers can score 2 points when the explosion kills everyone
 	roundWonBy( attackingTeam );
 
-	hide( @bombDecal );
 	hide( @bombHud );
 
 	bombSite.explode();
@@ -294,13 +276,13 @@ void bombExplode() {
 
 void resetBomb() {
 	hide( @bombModel );
-	hide( @bombDecal );
 
 	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.modelindex = modelBombModel;
 	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
-	bombModel.team = bombDecal.team = bombHud.team = attackingTeam;
+	bombModel.team = attackingTeam;
+	bombHud.team = attackingTeam;
 
 	bombState = BombState_Idle;
 }
@@ -321,12 +303,9 @@ void bombThink() {
 				break;
 			}
 
-			float decal_radius_frac = min( 1.0f, float( levelTime - bombActionTime ) / float( BOMB_SPRITE_RESIZE_TIME ) );
-			bombDecal.radius = int( BOMB_ARM_DEFUSE_RADIUS * decal_radius_frac );
-			bombDecal.effects |= EF_TEAMCOLOR_TRANSITION;
-			bombDecal.counterNum = int( frac * 255.0f );
-			if( frac != 0 )
+			if( frac != 0 ) {
 				setTeamProgress( attackingTeam, int( frac * 100.0f ), BombProgress_Planting );
+			}
 		} break;
 
 		case BombState_Planted: {
@@ -380,20 +359,10 @@ void bombThink() {
 	}
 }
 
-// fixes sprite/decal changing colour at the end of a round
-// and the exploding animation from stopping
+// fixes the exploding animation from stopping
 void bombPostRoundThink() {
-	switch( bombState ) {
-		case BombState_Planting: {
-			bombDecal.effects |= EF_TEAMCOLOR_TRANSITION;
-
-			float frac = float( levelTime - bombActionTime ) / ( cvarArmTime.value * 1000.0f );
-			bombDecal.counterNum = int( frac * 255.0f );
-		} break;
-
-		case BombState_Exploding:
-			bombSite.stepExplosion();
-			break;
+	if( bombState == BombState_Exploding ) {
+		bombSite.stepExplosion();
 	}
 }
 

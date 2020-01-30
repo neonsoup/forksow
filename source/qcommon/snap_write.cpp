@@ -437,7 +437,7 @@ static float SNAP_GainForAttenuation( float dist, float attenuation ) {
 /*
 * SNAP_SnapCullSoundEntity
 */
-static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin, 
+static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin,
 									float attenuation ) {
 	float gain, dist;
 
@@ -458,7 +458,7 @@ static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const v
 /*
 * SNAP_SnapCullEntity
 */
-static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame, 
+static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
 								const vec3_t vieworg, int viewarea, uint8_t *fatpvs ) {
 	uint8_t *areabits;
 	bool snd_cull_only;
@@ -515,13 +515,13 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		snd_cull_only = true;
 	}
 	// if not a sound entity but the entity is only a sound
-	else if( !ent->s.modelindex && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound ) {
+	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
 		snd_cull_only = true;
 	}
 
 	// PVS culling alone may not be used on pure sounds, entities with
 	// events and regular entities emitting sounds
-	if( snd_cull_only || ent->s.events[0] || ent->s.sound ) {
+	if( snd_cull_only || ent->s.events[0] || ent->s.sound != EMPTY_HASH ) {
 		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg, ent->s.attenuation );
 	}
 
@@ -535,7 +535,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 /*
 * SNAP_AddEntitiesVisibleAtOrigin
 */
-static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
+static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	edict_t *ent;
@@ -589,7 +589,7 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 /*
 * SNAP_BuildSnapEntitiesList
 */
-static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
+static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	int leafnum, clientarea;

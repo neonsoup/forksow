@@ -110,7 +110,6 @@ void CG_BuildSolidList( void ) {
 				case ET_GRENADE:
 				case ET_PLASMA:
 				case ET_LASERBEAM:
-				case ET_DECAL:
 				case ET_HUD:
 				case ET_LASER:
 				case ET_SPIKES:

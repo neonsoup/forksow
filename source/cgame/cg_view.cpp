@@ -955,7 +955,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	if( !cgs.precacheDone || !cg.frame.valid ) {
 		CG_Precache();
-		CG_DrawLoading();
 		return;
 	}
 

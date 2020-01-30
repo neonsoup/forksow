@@ -87,14 +87,14 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		// add a time offset to counter antilag visualization
 		if( !cgs.demoPlaying && cg_projectileAntilagOffset->value > 0.0f &&
 			!ISVIEWERENTITY( state->ownerNum ) && ( cgs.playerNum + 1 != cg.predictedPlayerState.POVnum ) ) {
-			serverTime += state->modelindex2 * cg_projectileAntilagOffset->value;
+			serverTime += state->linearMovementTimeDelta * cg_projectileAntilagOffset->value;
 		}
 	}
 
 	moveTime = GS_LinearMovement( state, serverTime, origin );
 	VectorCopy( origin, state->origin );
 
-	if( ( moveTime < 0 ) && ( state->solid != SOLID_BMODEL ) ) {
+	if( moveTime < 0 && state->solid != SOLID_BMODEL ) {
 		// when flyTime is negative don't offset it backwards more than PROJECTILE_PRESTEP value
 		// FIXME: is this still valid?
 		float maxBackOffset;
@@ -160,9 +160,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		}
 
 		// some data changes will force no lerping
-		if( state->modelindex != cent->current.modelindex
-			|| state->teleported
-			|| state->linearMovement != cent->current.linearMovement ) {
+		if( state->model != cent->current.model || state->teleported || state->linearMovement != cent->current.linearMovement ) {
 			cent->serverFrame = -99;
 		}
 
@@ -446,10 +444,7 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
 
 	// set up the model
-	int modelindex = cent->current.modelindex;
-	if( modelindex > 0 && modelindex < MAX_MODELS ) {
-		cent->ent.model = cgs.modelDraw[modelindex];
-	}
+	cent->ent.model = cent->current.model;
 }
 
 /*
@@ -613,74 +608,18 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
-		if( !cg.view.thirdperson && cent->current.modelindex ) {
+		if( !cg.view.thirdperson && cent->current.model != EMPTY_HASH ) {
 			// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 			return;
 		}
 	}
 
 	// if set to invisible, skip
-	if( !cent->current.modelindex || cent->current.team == TEAM_SPECTATOR ) {
+	if( !cent->current.model != EMPTY_HASH || cent->current.team == TEAM_SPECTATOR ) {
 		return;
 	}
 
 	CG_DrawPlayer( cent );
-}
-
-//==========================================================================
-//		ET_DECAL
-//==========================================================================
-
-/*
-* CG_AddDecalEnt
-*/
-static void CG_AddDecalEnt( centity_t *cent ) {
-	// if set to invisible, skip
-	if( !cent->current.modelindex ) {
-		return;
-	}
-
-	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
-		CG_EntAddTeamColorTransitionEffect( cent );
-	}
-
-	// CG_AddFragmentedDecal( cent->ent.origin, cent->ent.origin2,
-	// 					   cent->ent.rotation, cent->ent.radius,
-	// 					   cent->ent.shaderRGBA[0] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[1] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[2] * ( 1.0 / 255.0 ),
-	// 					   cent->ent.shaderRGBA[3] * ( 1.0 / 255.0 ), cent->ent.override_material );
-}
-
-/*
-* CG_LerpDecalEnt
-*/
-static void CG_LerpDecalEnt( centity_t *cent ) {
-	int i;
-	float a1, a2;
-
-	// interpolate origin
-	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
-
-	cent->ent.radius = Lerp( cent->prev.radius, cg.lerpfrac, cent->current.radius );
-
-	a1 = cent->prev.modelindex2 / 255.0 * 360;
-	a2 = cent->current.modelindex2 / 255.0 * 360;
-	cent->ent.rotation = LerpAngle( a1, a2, cg.lerpfrac );
-}
-
-/*
-* CG_UpdateDecalEnt
-*/
-static void CG_UpdateDecalEnt( centity_t *cent ) {
-	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
-
-	// set up the null model, may be potentially needed for linked model
-	cent->ent.model = NULL;
-	cent->ent.override_material = cgs.imagePrecache[ cent->current.modelindex ];
-	cent->ent.radius = cent->prev.radius;
-	cent->ent.rotation = cent->prev.modelindex2 / 255.0 * 360;
-	VectorCopy( cent->prev.origin, cent->ent.origin );
-	VectorCopy( cent->prev.origin2, cent->ent.origin2 );
 }
 
 //==========================================================================
@@ -747,20 +686,15 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 //==================================================
 
 void CG_SoundEntityNewState( centity_t *cent ) {
-	int channel, soundindex, owner;
-	float attenuation;
-	bool fixed;
+	int owner = cent->current.ownerNum;
+	int channel = cent->current.channel & ~CHAN_FIXED;
+	bool fixed = ( cent->current.channel & CHAN_FIXED ) ? true : false;
+	float attenuation = cent->current.attenuation;
 
-	soundindex = cent->current.sound;
-	owner = cent->current.ownerNum;
-	channel = cent->current.channel & ~CHAN_FIXED;
-	fixed = ( cent->current.channel & CHAN_FIXED ) ? true : false;
-	attenuation = cent->current.attenuation;
+	const SoundEffect * sfx = FindSoundEffect( cent->current.sound );
 
 	if( attenuation == ATTN_NONE ) {
-		if( cgs.soundPrecache[soundindex] ) {
-			S_StartGlobalSound( cgs.soundPrecache[soundindex], channel & ~CHAN_FIXED, 1.0f );
-		}
+		S_StartGlobalSound( sfx, channel & ~CHAN_FIXED, 1.0f );
 		return;
 	}
 
@@ -779,11 +713,11 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( cgs.soundPrecache[soundindex], FromQF3( cent->current.origin ), channel, 1.0f, attenuation );
+		S_StartFixedSound( sfx, FromQF3( cent->current.origin ), channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {
-		S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
+		S_StartGlobalSound( sfx, channel, 1.0f );
 	} else {
-		S_StartEntitySound( cgs.soundPrecache[soundindex], owner, channel, 1.0f, attenuation );
+		S_StartEntitySound( sfx, owner, channel, 1.0f, attenuation );
 	}
 }
 
@@ -935,11 +869,6 @@ void CG_AddEntities( void ) {
 			case ET_LASERBEAM:
 				break;
 
-			case ET_DECAL:
-				CG_AddDecalEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
-
 			case ET_PUSH_TRIGGER:
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				break;
@@ -1008,10 +937,6 @@ void CG_LerpEntities( void ) {
 				} else {
 					CG_LerpGenericEnt( cent );
 				}
-				break;
-
-			case ET_DECAL:
-				CG_LerpDecalEnt( cent );
 				break;
 
 			case ET_LASERBEAM:
@@ -1089,10 +1014,6 @@ void CG_UpdateEntities( void ) {
 
 			case ET_LASERBEAM:
 				CG_UpdateLaserbeamEnt( cent );
-				break;
-
-			case ET_DECAL:
-				CG_UpdateDecalEnt( cent );
 				break;
 
 			case ET_PUSH_TRIGGER:

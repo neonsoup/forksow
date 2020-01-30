@@ -24,6 +24,7 @@ enum EntityFieldType {
 	F_INT,
 	F_FLOAT,
 	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
+	F_HASH,
 	F_VECTOR,
 	F_ANGLE,
 	F_RGBA,
@@ -41,8 +42,8 @@ struct EntityField {
 static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( model ), F_LSTRING },
-	{ "model2", FOFS( model2 ), F_LSTRING },
+	{ "model", FOFS( model ), F_HASH },
+	{ "model2", FOFS( model2 ), F_HASH },
 	{ "spawnflags", FOFS( spawnflags ), F_INT },
 	{ "speed", FOFS( speed ), F_FLOAT },
 	{ "target", FOFS( target ), F_LSTRING },
@@ -71,14 +72,12 @@ static const EntityField fields[] = {
 	{ "distance", STOFS( distance ), F_INT, FFL_SPAWNTEMP },
 	{ "radius", STOFS( radius ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "height", STOFS( height ), F_INT, FFL_SPAWNTEMP },
-	{ "noise", STOFS( noise ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "noise_start", STOFS( noise_start ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "noise_stop", STOFS( noise_stop ), F_LSTRING, FFL_SPAWNTEMP },
+	{ "noise", STOFS( noise ), F_HASH, FFL_SPAWNTEMP },
+	{ "noise_start", STOFS( noise_start ), F_HASH, FFL_SPAWNTEMP },
+	{ "noise_stop", STOFS( noise_stop ), F_HASH, FFL_SPAWNTEMP },
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
-	{ "debris1", STOFS( debris1 ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "debris2", STOFS( debris2 ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
 	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
 };
@@ -279,6 +278,10 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 			case F_LSTRING:
 				*(char **)( b + f.ofs ) = ED_NewString( value );
 				break;
+			case F_HASH: {
+				char * s = ED_NewString( value );
+				*(StringHash *)( b + f.ofs ) = StringHash( value );
+			} break;
 			case F_INT:
 				*(int *)( b + f.ofs ) = atoi( value );
 				break;
@@ -419,60 +422,6 @@ static void G_FindTeams( void ) {
 	if( developer->integer ) {
 		Com_Printf( "%i teams with %i entities\n", c, c2 );
 	}
-}
-
-void G_PrecacheMedia( void ) {
-	//
-	// MODELS
-	//
-
-	trap_ModelIndex( "models/objects/gibs/gib" );
-
-	//
-	// SOUNDS
-	//
-
-	// jalfixme : most of these sounds can be played from the clients
-
-	trap_SoundIndex( S_WORLD_WATER_IN );    // feet hitting water
-	trap_SoundIndex( S_WORLD_WATER_OUT );       // feet leaving water
-	trap_SoundIndex( S_WORLD_UNDERWATER );
-
-	trap_SoundIndex( S_WORLD_SLIME_IN );
-	trap_SoundIndex( S_WORLD_SLIME_OUT );
-	trap_SoundIndex( S_WORLD_UNDERSLIME );
-
-	trap_SoundIndex( S_WORLD_LAVA_IN );
-	trap_SoundIndex( S_WORLD_LAVA_OUT );
-	trap_SoundIndex( S_WORLD_UNDERLAVA );
-
-	trap_SoundIndex( S_HIT_WATER );
-
-	// announcer
-
-	// countdown
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_GET_READY_TO_FIGHT_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_GET_READY_TO_FIGHT_1_to_2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 3, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 3, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_FIGHT_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_FIGHT_1_to_2, 2 ) );
-
-	// postmatch
-	trap_SoundIndex( va( S_ANNOUNCER_POSTMATCH_GAMEOVER_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_POSTMATCH_GAMEOVER_1_to_2, 2 ) );
-
-	// timeout
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, 2 ) );
 }
 
 /*
@@ -634,7 +583,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	G_Gametype_Init();
 
-	G_PrecacheMedia();
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
 
 	// start spawning entities

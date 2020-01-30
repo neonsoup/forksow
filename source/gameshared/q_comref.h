@@ -106,10 +106,7 @@ typedef enum {
 #define CS_MAPCHECKSUM      31      // for catching cheater maps
 
 //precache stuff begins here
-#define CS_MODELS           32
-#define CS_SOUNDS           ( CS_MODELS + MAX_MODELS )
-#define CS_IMAGES           ( CS_SOUNDS + MAX_SOUNDS )
-#define CS_PLAYERINFOS      ( CS_IMAGES + MAX_IMAGES )
+#define CS_PLAYERINFOS      32
 #define CS_GAMECOMMANDS     ( CS_PLAYERINFOS + MAX_CLIENTS )
 #define MAX_CONFIGSTRINGS   ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
 

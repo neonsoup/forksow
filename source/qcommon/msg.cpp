@@ -198,6 +198,10 @@ static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
+	DeltaFundamental( buf, hash.hash, baseline.hash );
+}
+
 template< typename T, size_t N >
 void Delta( DeltaBuffer * buf, T ( &arr )[ N ], const T ( &baseline )[ N ] ) {
 	for( size_t i = 0; i < N; i++ ) {
@@ -510,13 +514,13 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 
 	Delta( buf, ent.type, baseline.type );
 	Delta( buf, ent.solid, baseline.solid );
-	Delta( buf, ent.modelindex, baseline.modelindex );
+	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.svflags, baseline.svflags );
 	Delta( buf, ent.effects, baseline.effects );
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
 	Delta( buf, ent.targetNum, baseline.targetNum );
 	Delta( buf, ent.sound, baseline.sound );
-	Delta( buf, ent.modelindex2, baseline.modelindex2 );
+	Delta( buf, ent.model2, baseline.model2 );
 	DeltaHalf( buf, ent.attenuation, baseline.attenuation );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
@@ -535,6 +539,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.linearMovementVelocity, baseline.linearMovementVelocity );
 	Delta( buf, ent.linearMovementBegin, baseline.linearMovementBegin );
 	Delta( buf, ent.linearMovementEnd, baseline.linearMovementEnd );
+	Delta( buf, ent.linearMovementTimeDelta, baseline.linearMovementTimeDelta );
 
 	Delta( buf, ent.colorRGBA, baseline.colorRGBA );
 	Delta( buf, ent.silhouetteColor, baseline.silhouetteColor );

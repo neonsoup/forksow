@@ -68,11 +68,6 @@ typedef struct {
 	void ( *ConfigString )( int num, const char *string );
 	const char *( *GetConfigString )( int num );
 
-	// the *index functions create configstrings and some internal server state
-	int ( *ModelIndex )( const char *name );
-	int ( *SoundIndex )( const char *name );
-	int ( *ImageIndex )( const char *name );
-
 	// a fake client connection, ClientConnect is called afterwords
 	// with fakeClient set to true
 	int ( *FakeClientConnect )( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );

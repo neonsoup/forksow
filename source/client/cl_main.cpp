@@ -1108,93 +1108,19 @@ static void CL_Userinfo_f( void ) {
 	Info_Print( Cvar_Userinfo() );
 }
 
-static int precache_check; // for autodownload of precache items
 static int precache_spawncount;
-static int precache_tex;
-
-#define PLAYER_MULT 5
-
-// ENV_CNT is map load
-#define ENV_CNT ( CS_PLAYERINFOS + MAX_CLIENTS * PLAYER_MULT )
-#define TEXTURE_CNT ( ENV_CNT + 1 )
 
 void CL_RequestNextDownload( void ) {
-	char tempname[MAX_CONFIGSTRING_CHARS + 4];
-
 	if( cls.state != CA_CONNECTED ) {
 		return;
 	}
 
-	// skip if download not allowed
-	if( !cl_downloads->integer && precache_check < ENV_CNT ) {
-		precache_check = ENV_CNT;
-	}
-
-	//ZOID
-	if( precache_check == CS_WORLDMODEL ) { // confirm map
-		precache_check = CS_MODELS; // 0 isn't used
-
+	if( cl_downloads->integer ) {
 		if( !CL_CheckOrDownloadFile( cl.configstrings[CS_WORLDMODEL] ) ) {
 			return; // started a download
 		}
 	}
 
-	if( precache_check >= CS_MODELS && precache_check < CS_MODELS + MAX_MODELS ) {
-		while( precache_check < CS_MODELS + MAX_MODELS && cl.configstrings[precache_check][0] ) {
-			if( cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#' ) {
-				precache_check++;
-				continue;
-			}
-
-			if( !CL_CheckOrDownloadFile( cl.configstrings[precache_check++] ) ) {
-				return; // started a download
-			}
-		}
-		precache_check = CS_SOUNDS;
-	}
-
-	if( precache_check >= CS_SOUNDS && precache_check < CS_SOUNDS + MAX_SOUNDS ) {
-		if( precache_check == CS_SOUNDS ) {
-			precache_check++; // zero is blank
-
-		}
-		while( precache_check < CS_SOUNDS + MAX_SOUNDS && cl.configstrings[precache_check][0] ) {
-			Q_strncpyz( tempname, cl.configstrings[precache_check++], sizeof( tempname ) );
-			if( FileExtension( tempname ).n == 0 ) {
-				Q_strncatz( tempname, ".ogg", sizeof( tempname ) );
-			}
-			if( !CL_CheckOrDownloadFile( tempname ) ) {
-				return; // started a download
-			}
-		}
-		precache_check = CS_IMAGES;
-	}
-	if( precache_check >= CS_IMAGES && precache_check < CS_IMAGES + MAX_IMAGES ) {
-		if( precache_check == CS_IMAGES ) {
-			precache_check++; // zero is blank
-
-		}
-		// precache phase completed
-		precache_check = ENV_CNT;
-	}
-
-	if( precache_check == ENV_CNT ) {
-		cls.download.successCount = 0;
-
-		precache_check = TEXTURE_CNT;
-	}
-
-	if( precache_check == TEXTURE_CNT ) {
-		precache_check = TEXTURE_CNT + 1;
-		precache_tex = 0;
-	}
-
-	// confirm existance of textures, download any that don't exist
-	if( precache_check == TEXTURE_CNT + 1 ) {
-		precache_check = TEXTURE_CNT + 999;
-	}
-
-	// load client game module
 	CL_GameModule_Init();
 	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
 }
@@ -1219,7 +1145,6 @@ void CL_Precache_f( void ) {
 		return;
 	}
 
-	precache_check = CS_WORLDMODEL;
 	precache_spawncount = atoi( Cmd_Argv( 1 ) );
 
 	CL_RequestNextDownload();

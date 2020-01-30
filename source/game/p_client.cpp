@@ -91,7 +91,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.angles[PITCH] = 0;
 	body->s.angles[ROLL] = 0;
 	body->s.angles[YAW] = ent->s.angles[YAW];
-	body->s.modelindex2 = 0;
+	body->s.model2 = EMPTY_HASH;
 	body->s.weapon = 0;
 
 	//copy player position and box size
@@ -128,7 +128,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// copy the model
 	body->s.type = ET_CORPSE;
-	body->s.modelindex = ent->s.modelindex;
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
 
@@ -162,7 +161,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 
 	ent->s.angles[0] = 0;
 	ent->s.angles[2] = 0;
-	ent->s.sound = 0;
+	ent->s.sound = EMPTY_HASH;
 
 	ent->r.solid = SOLID_NOT;
 
@@ -248,27 +247,6 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 }
 
-static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
-	char model[MAX_QPATH];
-	const char *usermodel;
-
-	// index player model
-	usermodel = Info_ValueForKey( userinfo, "model" );
-	if( !usermodel || !usermodel[0] || !COM_ValidateRelativeFilename( usermodel ) || strchr( usermodel, '/' ) ) {
-		usermodel = NULL;
-	}
-
-	if( usermodel ) {
-		snprintf( model, sizeof( model ), "$models/players/%s", usermodel );
-	} else {
-		snprintf( model, sizeof( model ), "$models/players/%s", DEFAULT_PLAYERMODEL );
-	}
-
-	if( !ent->deadflag ) {
-		ent->s.modelindex = trap_ModelIndex( model );
-	}
-}
-
 /*
 * G_ClientClearStats
 */
@@ -293,10 +271,9 @@ void G_GhostClient( edict_t *ent ) {
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
-	ent->s.modelindex = ent->s.modelindex2 = 0;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
-	ent->s.sound = 0;
+	ent->s.sound = EMPTY_HASH;
 	ent->s.light = 0;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
@@ -760,10 +737,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		}
 	}
 
-	if( !G_ISGHOSTING( ent ) && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-		G_Client_AssignTeamSkin( ent, userinfo );
-	}
-
 	// save off the userinfo in case we want to check something later
 	Q_strncpyz( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
 
@@ -836,7 +809,6 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	// they can connect
 
 	G_InitEdict( ent );
-	ent->s.modelindex = 0;
 	ent->r.solid = SOLID_NOT;
 	ent->r.client = game.clients + PLAYERNUM( ent );
 	ent->r.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );

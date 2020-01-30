@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "qcommon/qcommon.h"
+#include "qcommon/hash.h"
 #include "gameshared/gs_public.h"
 #include "game/g_public.h"
 #include "game/g_syscalls.h"
@@ -166,12 +167,11 @@ typedef struct {
 	int distance;
 	int height;
 	float radius;
-	const char *noise;
-	const char *noise_start;
-	const char *noise_stop;
+	StringHash noise;
+	StringHash noise_start;
+	StringHash noise_stop;
 	float pausetime;
 	const char *gravity;
-	const char *debris1, *debris2;
 
 	int gameteam;
 
@@ -430,12 +430,12 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 
-edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation );
-edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation );
-void G_GlobalSound( int channel, int soundindex );
-void G_LocalSound( edict_t *owner, int channel, int soundindex );
+edict_t *G_Sound( edict_t *owner, int channel, StringHash sound, float attenuation );
+edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float attenuation );
+void G_GlobalSound( int channel, StringHash sound );
+void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
-#define G_ISGHOSTING( x ) ( ( x )->s.modelindex == 0 && ( x )->r.solid == SOLID_NOT )
+#define G_ISGHOSTING( x ) ( ( x )->r.solid == SOLID_NOT )
 #define ISBRUSHMODEL( x ) ( ( x > 0 ) && ( (int)x < CM_NumInlineModels( svs.cms ) ) )
 
 void G_TeleportEffect( edict_t *ent, bool in );
@@ -448,7 +448,7 @@ void G_AddPlayerStateEvent( gclient_t *client, int event, int parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
-void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edict_t *ignore );
+void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore );
 edict_t *G_PlayerForText( const char *text );
 
 void G_SetBoundsForSpanEntity( edict_t *ent, float size );
@@ -711,9 +711,9 @@ typedef struct {
 	vec3_t end_origin;
 	vec3_t end_angles;
 
-	int sound_start;
-	int sound_middle;
-	int sound_end;
+	StringHash sound_start;
+	StringHash sound_middle;
+	StringHash sound_end;
 
 	vec3_t movedir;  // direction defined in the bsp
 
@@ -878,8 +878,8 @@ struct edict_s {
 	int movetype;
 	int flags;
 
-	const char *model;
-	const char *model2;
+	StringHash model;
+	StringHash model2;
 	int64_t freetime;          // time when the object was freed
 
 	int numEvents;
@@ -952,7 +952,7 @@ struct edict_s {
 	int groundentity_linkcount;
 	edict_t *teamchain;
 	edict_t *teammaster;
-	int noise_index;
+	StringHash sound;
 	float attenuation;
 
 	// timing variables

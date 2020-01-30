@@ -296,28 +296,14 @@ typedef struct {
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
 	weaponinfo_t *weaponInfos[ Weapon_Count + 1 ];
-	orientation_t weaponItemTag;
 
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
-	const Model * modelDraw[MAX_MODELS];
-
 	const Map * map;
 
-	// force models
 	PlayerModelMetadata *teamModelInfo[2];
 
-	const SoundEffect *soundPrecache[MAX_SOUNDS];
-	const Material *imagePrecache[MAX_IMAGES];
-
-	int precacheModelsStart;
-	int precacheSoundsStart;
-	int precacheShadersStart;
-	int precacheClientsStart;
-
 	char checkname[MAX_QPATH];
-	int precacheCount, precacheTotal, precacheStart;
-	int64_t precacheStartMsec;
 
 	ParticleSystem ions;
 	ParticleSystem bullet_sparks;
@@ -475,12 +461,9 @@ extern cvar_t *cg_showAwards;
 void CG_ScreenInit( void );
 void CG_Draw2D( void );
 void CG_DrawHUD( void );
-void CG_DrawLoading( void );
 void CG_CenterPrint( const char *str );
 
 void CG_EscapeKey( void );
-
-bool CG_LoadingItemName( const char *str );
 
 void CG_DrawCrosshair();
 void CG_ScreenCrosshairDamageUpdate( void );
@@ -595,7 +578,7 @@ void CG_SC_AutoRecordAction( const char *action );
 //
 // cg_teams.c
 //
-void CG_RegisterForceModels();
+void CG_RegisterPlayerModels();
 const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );

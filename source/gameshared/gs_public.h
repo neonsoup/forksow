@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
+#include "qcommon/hash.h"
 #include "gameshared/gs_qrespath.h"
 #include "gameshared/q_comref.h"
 #include "gameshared/q_collision.h"
@@ -159,8 +160,8 @@ struct SyncEntityState {
 	vec3_t angles;
 	vec3_t origin2;                 // ET_BEAM, ET_EVENT specific
 
-	unsigned int modelindex;
-	unsigned int modelindex2;
+	StringHash model;
+	StringHash model2;
 
 	int channel;                    // ET_SOUNDEVENT
 
@@ -187,6 +188,7 @@ struct SyncEntityState {
 	vec3_t linearMovementBegin;			// the starting movement point for brush models
 	unsigned int linearMovementDuration;
 	int64_t linearMovementTimeStamp;
+	int linearMovementTimeDelta;
 
 	float attenuation;                  // should be <= 255/16.0 as this is sent as byte
 
@@ -197,7 +199,7 @@ struct SyncEntityState {
 	WeaponType weapon;                  // WEAP_ for players
 	bool teleported;
 
-	int sound;                          // for looping sounds, to guarantee shutoff
+	StringHash sound;                          // for looping sounds, to guarantee shutoff
 
 	int light;							// constant light glow
 
@@ -711,8 +713,6 @@ enum {
 
 	ET_LASERBEAM,   // for continuous beams
 
-	ET_DECAL,
-
 	ET_HUD,
 
 	ET_LASER,
@@ -785,5 +785,4 @@ const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
 int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState *playerState, int buttons, int msecs, int timeDelta );
 trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) );
-bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) ); bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );

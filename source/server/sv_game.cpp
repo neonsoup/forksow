@@ -257,10 +257,6 @@ void SV_InitGameProgs( void ) {
 	// load a new game dll
 	import.GameCmd = PF_GameCmd;
 
-	import.ModelIndex = SV_ModelIndex;
-	import.SoundIndex = SV_SoundIndex;
-	import.ImageIndex = SV_ImageIndex;
-
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;
 

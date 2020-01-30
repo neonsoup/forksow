@@ -28,66 +28,6 @@ server_static_t svs;                // persistant server info
 server_t sv;                 // local server
 
 /*
-* SV_FindIndex
-*/
-static int SV_FindIndex( const char *name, int start, int max, bool create ) {
-	int i;
-
-	if( !name || !name[0] ) {
-		return 0;
-	}
-
-	if( strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		Com_Error( ERR_DROP, "Configstring too long: %s\n", name );
-	}
-
-	for( i = 1; i < max && sv.configstrings[start + i][0]; i++ ) {
-		if( !strncmp( sv.configstrings[start + i], name, sizeof( sv.configstrings[start + i] ) ) ) {
-			return i;
-		}
-	}
-
-	if( !create ) {
-		return 0;
-	}
-
-	if( i == max ) {
-		Com_Error( ERR_DROP, "*Index: overflow" );
-	}
-
-	Q_strncpyz( sv.configstrings[start + i], name, sizeof( sv.configstrings[i] ) );
-
-	// send the update to everyone
-	if( sv.state != ss_loading ) {
-		SV_SendServerCommand( NULL, "cs %i \"%s\"", start + i, name );
-	}
-
-	return i;
-}
-
-
-int SV_ModelIndex( const char *name ) {
-	if( name[ 0 ] == '*' ) {
-		char lol[ MAX_CONFIGSTRING_CHARS ];
-		Q_strncpyz( lol, sv.configstrings[ CS_WORLDMODEL ], sizeof( lol ) );
-		COM_StripExtension( lol );
-		Q_strncatz( lol, name, sizeof( lol ) );
-		return SV_FindIndex( lol, CS_MODELS, MAX_MODELS, true );
-	}
-	else {
-		return SV_FindIndex( name, CS_MODELS, MAX_MODELS, true );
-	}
-}
-
-int SV_SoundIndex( const char *name ) {
-	return SV_FindIndex( name, CS_SOUNDS, MAX_SOUNDS, true );
-}
-
-int SV_ImageIndex( const char *name ) {
-	return SV_FindIndex( name, CS_IMAGES, MAX_IMAGES, true );
-}
-
-/*
 * SV_CreateBaseline
 *
 * Entity baselines are used to compress the update messages
@@ -104,7 +44,7 @@ static void SV_CreateBaseline( void ) {
 		if( !svent->r.inuse ) {
 			continue;
 		}
-		if( !svent->s.modelindex && !svent->s.sound && !svent->s.effects ) {
+		if( svent->s.model == EMPTY_HASH && svent->s.sound == EMPTY_HASH && !svent->s.effects ) {
 			continue;
 		}
 
@@ -176,14 +116,6 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	svs.cms = CM_LoadMap( data );
 
 	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%u", svs.cms->checksum );
-
-	// reserve the first modelIndexes for inline models
-	for( i = 1; i < CM_NumInlineModels( svs.cms ); i++ ) {
-		char buf[ MAX_CONFIGSTRING_CHARS ];
-		snprintf( buf, sizeof( buf ), "*%d", i );
-		SV_ModelIndex( buf );
-		snprintf( sv.configstrings[CS_MODELS + i], sizeof( sv.configstrings[CS_MODELS + i] ), "*%i", i );
-	}
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );

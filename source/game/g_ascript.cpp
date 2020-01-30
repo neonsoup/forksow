@@ -79,10 +79,6 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 	ASLIB_ENUM_VAL( CS_CALLVOTE_REQUIRED_VOTES ),
 	ASLIB_ENUM_VAL( CS_CALLVOTE_YES_VOTES ),
 	ASLIB_ENUM_VAL( CS_CALLVOTE_NO_VOTES ),
-
-	ASLIB_ENUM_VAL( CS_MODELS ),
-	ASLIB_ENUM_VAL( CS_SOUNDS ),
-	ASLIB_ENUM_VAL( CS_IMAGES ),
 	ASLIB_ENUM_VAL( CS_PLAYERINFOS ),
 	ASLIB_ENUM_VAL( CS_GAMECOMMANDS ),
 
@@ -137,7 +133,6 @@ static const asEnumVal_t asEntityTypeEnumVals[] =
 	ASLIB_ENUM_VAL( ET_GRENADE ),
 	ASLIB_ENUM_VAL( ET_PLASMA ),
 	ASLIB_ENUM_VAL( ET_LASERBEAM ),
-	ASLIB_ENUM_VAL( ET_DECAL ),
 	ASLIB_ENUM_VAL( ET_HUD ),
 	ASLIB_ENUM_VAL( ET_LASER ),
 	ASLIB_ENUM_VAL( ET_SPIKES ),
@@ -1155,10 +1150,6 @@ static void objectGameEntity_SetMovedir( edict_t *self ) {
 	G_SetMovedir( self->s.angles, self->moveinfo.movedir );
 }
 
-static bool objectGameEntity_isBrushModel( edict_t *self ) {
-	return ISBRUSHMODEL( self->s.modelindex );
-}
-
 static bool objectGameEntity_IsGhosting( edict_t *self ) {
 	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) < CS_SPAWNED ) {
 		return true;
@@ -1173,14 +1164,6 @@ static int objectGameEntity_EntNum( edict_t *self ) {
 
 static int objectGameEntity_PlayerNum( edict_t *self ) {
 	return ( PLAYERNUM( self ) );
-}
-
-static asstring_t *objectGameEntity_getModelName( edict_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->model, self->model ? strlen( self->model ) : 0 );
-}
-
-static asstring_t *objectGameEntity_getModel2Name( edict_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->model2, self->model2 ? strlen( self->model2 ) : 0 );
 }
 
 static asstring_t *objectGameEntity_getClassname( edict_t *self ) {
@@ -1345,15 +1328,12 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, setSize, ( const Vec3 &in, const Vec3 &in ) ), asFUNCTION( objectGameEntity_SetSize ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Vec3, get_movedir, ( ) const ), asFUNCTION( objectGameEntity_GetMovedir ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_movedir, ( ) ), asFUNCTION( objectGameEntity_SetMovedir ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isBrushModel, ( ) const ), asFUNCTION( objectGameEntity_isBrushModel ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, freeEntity, ( ) ), asFUNCTION( G_FreeEdict ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, linkEntity, ( ) ), asFUNCTION( GClip_LinkEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, unlinkEntity, ( ) ), asFUNCTION( GClip_UnlinkEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isGhosting, ( ) const ), asFUNCTION( objectGameEntity_IsGhosting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, get_entNum, ( ) const ), asFUNCTION( objectGameEntity_EntNum ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, get_playerNum, ( ) const ), asFUNCTION( objectGameEntity_PlayerNum ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_model, ( ) const ), asFUNCTION( objectGameEntity_getModelName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_model2, ( ) const ), asFUNCTION( objectGameEntity_getModel2Name ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_classname, ( ) const ), asFUNCTION( objectGameEntity_getClassname ), asCALL_CDECL_OBJLAST },
 	//{ ASLIB_FUNCTION_DECL(const String @, getSpawnKey, ( String &in )), asFUNCTION(objectGameEntity_getSpawnKey), NULL, asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_targetname, ( ) const ), asFUNCTION( objectGameEntity_getTargetname ), asCALL_CDECL_OBJLAST },
@@ -1384,8 +1364,8 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( Entity @, enemy ), offsetof( edict_t, enemy ) },
 	{ ASLIB_PROPERTY_DECL( Entity @, activator ), offsetof( edict_t, activator ) },
 	{ ASLIB_PROPERTY_DECL( int, type ), offsetof( edict_t, s.type ) },
-	{ ASLIB_PROPERTY_DECL( int, modelindex ), offsetof( edict_t, s.modelindex ) },
-	{ ASLIB_PROPERTY_DECL( int, modelindex2 ), offsetof( edict_t, s.modelindex2 ) },
+	{ ASLIB_PROPERTY_DECL( uint64, model ), offsetof( edict_t, s.model.hash ) },
+	{ ASLIB_PROPERTY_DECL( uint64, model2 ), offsetof( edict_t, s.model2.hash ) },
 	{ ASLIB_PROPERTY_DECL( int, radius ), offsetof( edict_t, s.radius ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), offsetof( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), offsetof( edict_t, s.counterNum ) },
@@ -1652,8 +1632,8 @@ static void asFunc_Error( const asstring_t *str ) {
 	Com_Error( ERR_DROP, "%s", str && str->buffer ? str->buffer : "" );
 }
 
-static void asFunc_G_Sound( edict_t *owner, int channel, int soundindex, float attenuation ) {
-	G_Sound( owner, channel, soundindex, attenuation );
+static void asFunc_G_Sound( edict_t *owner, int channel, u64 sound, float attenuation ) {
+	G_Sound( owner, channel, StringHash( sound ), attenuation );
 }
 
 static int asFunc_DirToByte( asvec3_t *vec ) {
@@ -1684,28 +1664,12 @@ static void asFunc_Cbuf_ExecuteText( asstring_t *str ) {
 	Cbuf_ExecuteText( EXEC_APPEND, str->buffer );
 }
 
-static int asFunc_ImageIndex( asstring_t *str ) {
+static u64 asFunc_Hash64( asstring_t *str ) {
 	if( !str || !str->buffer ) {
 		return 0;
 	}
 
-	return trap_ImageIndex( str->buffer );
-}
-
-static int asFunc_ModelIndex( asstring_t *str ) {
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	return trap_ModelIndex( str->buffer );
-}
-
-static int asFunc_SoundIndex( asstring_t *str ) {
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	return trap_SoundIndex( str->buffer );
+	return Hash64( str->buffer );
 }
 
 static void asFunc_RegisterCommand( asstring_t *str ) {
@@ -1784,19 +1748,19 @@ static int asFunc_WeaponCost( WeaponType weapon ) {
 	return GS_GetWeaponDef( weapon )->cost;
 }
 
-static void asFunc_PositionedSound( asvec3_t *origin, int channel, int soundindex, float attenuation ) {
+static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound, float attenuation ) {
 	if( !origin ) {
 		return;
 	}
 
-	G_PositionedSound( origin->v, channel, soundindex, attenuation );
+	G_PositionedSound( origin->v, channel, StringHash( sound ), attenuation );
 }
 
-static void asFunc_G_GlobalSound( int channel, int soundindex ) {
-	G_GlobalSound( channel, soundindex );
+static void asFunc_G_GlobalSound( int channel, u64 sound ) {
+	G_GlobalSound( channel, StringHash( sound ) );
 }
 
-static void asFunc_G_LocalSound( gclient_t *target, int channel, int soundindex ) {
+static void asFunc_G_LocalSound( gclient_t *target, int channel, u64 sound ) {
 	edict_t *ent = NULL;
 
 	if( !target ) {
@@ -1814,11 +1778,11 @@ static void asFunc_G_LocalSound( gclient_t *target, int channel, int soundindex 
 	}
 
 	if( ent ) {
-		G_LocalSound( ent, channel, soundindex );
+		G_LocalSound( ent, channel, StringHash( sound ) );
 	}
 }
 
-static void asFunc_G_AnnouncerSound( gclient_t *target, int soundindex, int team, bool queued, gclient_t *ignore ) {
+static void asFunc_G_AnnouncerSound( gclient_t *target, u64 sound, int team, bool queued, gclient_t *ignore ) {
 	edict_t *ent = NULL, *passent = NULL;
 	int playerNum;
 
@@ -1841,7 +1805,7 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, int soundindex, int team
 	}
 
 
-	G_AnnouncerSound( ent, soundindex, team, queued, passent );
+	G_AnnouncerSound( ent, StringHash( sound ), team, queued, passent );
 }
 
 static void asFunc_FireBolt( asvec3_t *origin, asvec3_t *angles, int range, int damage, int knockback, edict_t *owner ) {
@@ -1890,23 +1854,22 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_PrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_PrintMsg ), NULL },
 	{ "void G_CenterPrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_CenterPrintMsg ), NULL },
 	{ "void Com_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
-	{ "void G_Sound( Entity @, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_G_Sound ), NULL },
-	{ "void G_PositionedSound( const Vec3 &in, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_PositionedSound ), NULL },
-	{ "void G_GlobalSound( int channel, int soundindex )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
-	{ "void G_LocalSound( Client @, int channel, int soundIndex )", asFUNCTION( asFunc_G_LocalSound ), NULL },
-	{ "void G_AnnouncerSound( Client @, int soundIndex, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
+	{ "void G_Sound( Entity @, int channel, uint64 sound, float attenuation )", asFUNCTION( asFunc_G_Sound ), NULL },
+	{ "void G_PositionedSound( const Vec3 &in, int channel, uint64 sound, float attenuation )", asFUNCTION( asFunc_PositionedSound ), NULL },
+	{ "void G_GlobalSound( int channel, uint64 sound )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
+	{ "void G_LocalSound( Client @, int channel, uint64 sound )", asFUNCTION( asFunc_G_LocalSound ), NULL },
+	{ "void G_AnnouncerSound( Client @, uint64 sound, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
 	{ "int G_DirToByte( const Vec3 &in origin )", asFUNCTION( asFunc_DirToByte ), NULL },
 	{ "int G_PointContents( const Vec3 &in origin )", asFUNCTION( asFunc_PointContents ), NULL },
 	{ "bool G_InPVS( const Vec3 &in origin1, const Vec3 &in origin2 )", asFUNCTION( asFunc_InPVS ), NULL },
 	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cbuf_ExecuteText ), NULL },
 
-	{ "int G_ImageIndex( const String &in )", asFUNCTION( asFunc_ImageIndex ), NULL },
-	{ "int G_ModelIndex( const String &in )", asFUNCTION( asFunc_ModelIndex ), NULL },
-	{ "int G_SoundIndex( const String &in )", asFUNCTION( asFunc_SoundIndex ), NULL },
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
 	{ "void G_RegisterCallvote( const String &in, const String &in, const String &in, const String &in )", asFUNCTION( asFunc_RegisterCallvote ), NULL },
 	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },
 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
+
+	{ "uint64 Hash64( const STring &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 
 	// projectile firing
 	{ "void G_FireBolt( const Vec3 &in origin, const Vec3 &in angles, int range, int damage, int knockback, Entity @owner )",asFUNCTION( asFunc_FireBolt ), NULL },

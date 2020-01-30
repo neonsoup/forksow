@@ -55,14 +55,12 @@ static edict_t *W_Fire_LinearProjectile( edict_t *self, vec3_t start, vec3_t ang
 	// enable me when drawing exception is added to cgame
 	VectorClear( projectile->r.mins );
 	VectorClear( projectile->r.maxs );
-	projectile->s.modelindex = 0;
 	projectile->r.owner = self;
 	projectile->s.ownerNum = ENTNUM( self );
 	projectile->touch = ForgotToSetProjectileTouch;
 	projectile->nextThink = level.time + timeout;
 	projectile->think = G_FreeEdict;
 	projectile->classname = NULL; // should be replaced after calling this func.
-	projectile->s.sound = 0;
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 
@@ -80,7 +78,7 @@ static edict_t *W_Fire_LinearProjectile( edict_t *self, vec3_t start, vec3_t ang
 	VectorCopy( projectile->velocity, projectile->s.linearMovementVelocity );
 	projectile->s.linearMovementTimeStamp = svs.gametime;
 	projectile->s.team = self->s.team;
-	projectile->s.modelindex2 = Min2( Abs( timeDelta ), 255 );
+	projectile->s.linearMovementTimeDelta = Min2( Abs( timeDelta ), 255 );
 	return projectile;
 }
 
@@ -114,14 +112,11 @@ static edict_t *W_Fire_TossProjectile( edict_t *self, vec3_t start, vec3_t angle
 	VectorClear( projectile->r.mins );
 	VectorClear( projectile->r.maxs );
 
-	//projectile->s.modelindex = trap_ModelIndex ("models/objects/projectile/plasmagun/proj_plasmagun2.md3");
-	projectile->s.modelindex = 0;
 	projectile->r.owner = self;
 	projectile->touch = ForgotToSetProjectileTouch;
 	projectile->nextThink = level.time + timeout;
 	projectile->think = G_FreeEdict;
 	projectile->classname = NULL; // should be replaced after calling this func.
-	projectile->s.sound = 0;
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 	projectile->s.team = self->s.team;
@@ -329,7 +324,7 @@ edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, 
 	grenade->enemy = NULL;
 	VectorSet( grenade->avelocity, 300, 300, 300 );
 
-	grenade->s.modelindex = trap_ModelIndex( "weapons/gl/grenade" );
+	grenade->s.model = "weapons/gl/grenade";
 
 	GClip_LinkEntity( grenade );
 
@@ -372,13 +367,11 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 * W_Fire_Rocket
 */
 edict_t *W_Fire_Rocket( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int timeout, int timeDelta ) {
-	edict_t *rocket;
-
-	rocket = W_Fire_LinearProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
+	edict_t * rocket = W_Fire_LinearProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
 
 	rocket->s.type = ET_ROCKET; //rocket trail sfx
-	rocket->s.modelindex = trap_ModelIndex( "weapons/rl/rocket" );
-	rocket->s.sound = trap_SoundIndex( "weapons/rl/trail" );
+	rocket->s.model = "weapons/rl/rocket";
+	rocket->s.sound = "weapons/rl/trail";
 	rocket->s.attenuation = ATTN_STATIC;
 	rocket->touch = W_Touch_Rocket;
 	rocket->think = G_FreeEdict;
@@ -477,10 +470,6 @@ static void W_Think_Plasma( edict_t *ent ) {
 */
 static void W_AutoTouch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
 	W_Think_Plasma( ent );
-	if( !ent->r.inuse || ent->s.type != ET_PLASMA ) {
-		return;
-	}
-
 	W_Touch_Plasma( ent, other, plane, surfFlags );
 }
 
@@ -497,8 +486,8 @@ edict_t *W_Fire_Plasma( edict_t *self, vec3_t start, vec3_t angles, float damage
 	plasma->nextThink = level.time + 1;
 	plasma->timeout = level.time + timeout;
 
-	plasma->s.modelindex = trap_ModelIndex( "weapons/pg/cell" );
-	plasma->s.sound = trap_SoundIndex( "weapons/pg/trail" );
+	plasma->s.model = "weapons/pg/cell";
+	plasma->s.sound = "weapons/pg/trail";
 	plasma->s.attenuation = ATTN_STATIC;
 
 	return plasma;
@@ -564,8 +553,6 @@ void W_Fire_Electrobolt( edict_t *self, vec3_t start, vec3_t angles, float damag
 * G_HideLaser
 */
 static void G_HideLaser( edict_t *ent ) {
-	ent->s.modelindex = 0;
-	ent->s.sound = 0;
 	ent->r.svflags = SVF_NOCLIENT;
 
 	// give it 100 msecs before freeing itself, so we can relink it if we start firing again
@@ -617,15 +604,12 @@ static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 	}
 }
 
-static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType ) {
-	int i, ownerNum;
-	edict_t *e, *laser;
-
+static edict_t *FindOrSpawnLaser( edict_t * owner ) {
 	// first of all, see if we already have a beam entity for this laser
-	laser = NULL;
-	ownerNum = ENTNUM( owner );
-	for( i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
-		e = &game.edicts[i];
+	edict_t * laser = NULL;
+	int ownerNum = ENTNUM( owner );
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		edict_t * e = &game.edicts[i];
 		if( !e->r.inuse ) {
 			continue;
 		}
@@ -637,16 +621,11 @@ static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType ) {
 	}
 
 	// if no ent was found we have to create one
-	if( !laser || laser->s.type != entType || !laser->s.modelindex ) {
-		if( !laser ) {
-			laser = G_Spawn();
-		}
-
-		laser->s.type = entType;
+	if( !laser ) {
+		laser->s.type = ET_LASERBEAM;
 		laser->s.ownerNum = ownerNum;
 		laser->movetype = MOVETYPE_NONE;
 		laser->r.solid = SOLID_NOT;
-		laser->s.modelindex = 255; // needs to have some value so it isn't filtered by the server culling
 		laser->r.svflags &= ~SVF_NOCLIENT;
 	}
 
@@ -657,19 +636,18 @@ static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType ) {
 * W_Fire_Lasergun
 */
 edict_t *W_Fire_Lasergun( edict_t *self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta ) {
-	edict_t *laser;
-	trace_t tr;
-	vec3_t dir;
-
-	laser = _FindOrSpawnLaser( self, ET_LASERBEAM );
+	edict_t * laser = FindOrSpawnLaser( self );
 
 	laser_damage = damage;
 	laser_knockback = knockback;
 	laser_attackerNum = ENTNUM( self );
 
+	trace_t tr;
 	GS_TraceLaserBeam( &server_gs, &tr, start, angles, range, ENTNUM( self ), timeDelta, _LaserImpact );
 
 	laser->r.svflags |= SVF_FORCEOWNER;
+
+	vec3_t dir;
 	VectorCopy( start, laser->s.origin );
 	AngleVectors( angles, dir, NULL, NULL );
 	VectorMA( laser->s.origin, range, dir, laser->s.origin2 );
