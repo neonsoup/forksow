@@ -325,7 +325,6 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist ) {
 void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius ) {
 	LocalEntity *le;
 	vec3_t angles;
-	float model_radius = PLASMA_EXPLOSION_MODEL_RADIUS;
 
 	VecToAngles( dir, angles );
 
@@ -336,7 +335,7 @@ void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float rad
 						150, 0, 0.75, 0,
 						cgs.media.modPlasmaExplosion,
 						NULL );
-	le->ent.scale = radius / model_radius;
+	le->ent.scale = radius;
 
 	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
 
@@ -1128,6 +1127,7 @@ void DrawGibs() {
 
 			emitter.use_cone_direction = true;
 			emitter.direction_cone.normal = FromQF3( trace.plane.normal );
+			emitter.direction_cone.theta = 90.0f;
 
 			emitter.start_speed = 128.0f;
 			emitter.end_speed = 128.0f;
@@ -1146,7 +1146,7 @@ void DrawGibs() {
 		}
 
 		gib->lifetime -= dt;
-		if( gib->lifetime < 0 ) {
+		if( gib->lifetime <= 0 ) {
 			num_gibs--;
 			i--;
 			Swap2( gib, &gibs[ num_gibs ] );

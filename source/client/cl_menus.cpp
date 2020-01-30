@@ -36,8 +36,7 @@ enum DemoMenuState {
 
 enum SettingsState {
 	SettingsState_General,
-	SettingsState_Mouse,
-	SettingsState_Keys,
+	SettingsState_Controls,
 	SettingsState_Video,
 	SettingsState_Audio,
 };
@@ -254,8 +253,6 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 }
 
 static void SettingsGeneral() {
-	ImGui::Text( "These settings are saved automatically" );
-
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 	CvarSliderInt( "FOV", "fov", 60, 140, "100", CVAR_ARCHIVE );
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
@@ -263,79 +260,97 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 }
 
-static void SettingsMouse() {
-	ImGui::Text( "These settings are saved automatically" );
 
-	CvarSliderFloat( "Sensitivity", "sensitivity", 1.0f, 10.0f, "3", CVAR_ARCHIVE );
-	CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
-	CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
-}
-
-static void SettingsKeys() {
+static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
-
-	ImGui::Text( "These settings are saved automatically" );
 
 	ImGui::BeginChild( "binds" );
 
-	ImGui::Separator();
-	ImGui::Text( "Movement" );
-	ImGui::Separator();
+	if( ImGui::BeginTabBar("##binds", ImGuiTabBarFlags_None ) ) {
+		if( ImGui::BeginTabItem( "Game" ) ) {
+			ImGui::Separator();
+			ImGui::Text( "Movement" );
+			ImGui::Separator();
 
-	KeyBindButton( "Forward", "+forward" );
-	KeyBindButton( "Back", "+back" );
-	KeyBindButton( "Left", "+left" );
-	KeyBindButton( "Right", "+right" );
-	KeyBindButton( "Jump", "+jump" );
-	KeyBindButton( "Dash/walljump", "+special" );
-	KeyBindButton( "Crouch", "+crouch" );
-	KeyBindButton( "Walk", "+walk" );
+			KeyBindButton( "Forward", "+forward" );
+			KeyBindButton( "Back", "+back" );
+			KeyBindButton( "Left", "+left" );
+			KeyBindButton( "Right", "+right" );
+			KeyBindButton( "Jump", "+jump" );
+			KeyBindButton( "Dash/walljump", "+special" );
+			KeyBindButton( "Crouch", "+crouch" );
+			KeyBindButton( "Walk", "+walk" );
 
-	ImGui::Separator();
-	ImGui::Text( "Actions" );
-	ImGui::Separator();
+			ImGui::Separator();
+			ImGui::Text( "Actions" );
+			ImGui::Separator();
 
-	KeyBindButton( "Attack", "+attack" );
-	KeyBindButton( "Reload", "+reload" );
-	KeyBindButton( "Drop bomb", "drop" );
-	KeyBindButton( "Shop", "gametypemenu" );
-	KeyBindButton( "Scoreboard", "+scores" );
-	KeyBindButton( "Chat", "messagemode" );
-	KeyBindButton( "Team chat", "messagemode2" );
-	KeyBindButton( "Zoom", "+zoom" );
+			KeyBindButton( "Attack", "+attack" );
+			KeyBindButton( "Reload", "+reload" );
+			KeyBindButton( "Zoom", "+zoom" );
+			KeyBindButton( "Drop bomb", "drop" );
+			KeyBindButton( "Shop", "gametypemenu" );
+			KeyBindButton( "Scoreboard", "+scores" );
+			KeyBindButton( "Chat", "messagemode" );
+			KeyBindButton( "Team chat", "messagemode2" );
 
-	ImGui::Separator();
-	ImGui::Text( "Weapons" );
-	ImGui::Separator();
+			ImGui::EndTabItem();
+		}
 
-	KeyBindButton( "Weapon 1", "weapon 1" );
-	KeyBindButton( "Weapon 2", "weapon 2" );
-	KeyBindButton( "Weapon 3", "weapon 3" );
-	KeyBindButton( "Weapon 4", "weapon 4" );
-	KeyBindButton( "Weapon 5", "weapon 5" );
-	KeyBindButton( "Weapon 6", "weapon 6" );
-	KeyBindButton( "Next weapon", "weapnext" );
-	KeyBindButton( "Previous weapon", "weapprev" );
-	KeyBindButton( "Last weapon", "weaplast" );
 
-	ImGui::Separator();
-	ImGui::Text( "Voice lines" );
-	ImGui::Separator();
+		if( ImGui::BeginTabItem( "Weapons" ) ) {
+			KeyBindButton( "Next weapon", "weapnext" );
+			KeyBindButton( "Previous weapon", "weapprev" );
 
-	KeyBindButton( "Yes", "vsay yes" );
-	KeyBindButton( "No", "vsay no" );
-	KeyBindButton( "Thanks", "vsay thanks" );
-	KeyBindButton( "Good game", "vsay goodgame" );
-	KeyBindButton( "Boomstick", "vsay boomstick" );
-	KeyBindButton( "Shut up", "vsay shutup" );
+			ImGui::Separator();
 
-	ImGui::Separator();
-	ImGui::Text( "Specific weapons" );
-	ImGui::Separator();
+			KeyBindButton( "Weapon 1", "weapon 1" );
+			KeyBindButton( "Weapon 2", "weapon 2" );
+			KeyBindButton( "Weapon 3", "weapon 3" );
+			KeyBindButton( "Weapon 4", "weapon 4" );
+			KeyBindButton( "Weapon 5", "weapon 5" );
+			KeyBindButton( "Weapon 6", "weapon 6" );
 
-	for( int i = 0; i < Weapon_Count; i++ ) {
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
+			ImGui::Separator();
+			ImGui::Text( "Specific weapons" );
+			ImGui::Separator();
+
+			for( int i = 0; i < Weapon_Count; i++ ) {
+				const WeaponDef * weapon = GS_GetWeaponDef( i );
+				KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
+			}
+
+			ImGui::EndTabItem();
+		}
+
+
+		if( ImGui::BeginTabItem( "Mouse" ) ) {
+			CvarSliderFloat( "Sensitivity", "sensitivity", 1.0f, 10.0f, "3", CVAR_ARCHIVE );
+			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
+			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
+
+			ImGui::EndTabItem();
+		}
+
+		if( ImGui::BeginTabItem( "Voice lines" ) ) {
+			KeyBindButton( "Yes", "vsay yes" );
+			KeyBindButton( "No", "vsay no" );
+			KeyBindButton( "Thanks", "vsay thanks" );
+			KeyBindButton( "Good game", "vsay goodgame" );
+			KeyBindButton( "Boomstick", "vsay boomstick" );
+			KeyBindButton( "Shut up", "vsay shutup" );
+			KeyBindButton( "Cya", "vsay cya" );
+			KeyBindButton( "Get good", "vsay getgood" );
+			KeyBindButton( "Hit the showers", "vsay hittheshowers" );
+			KeyBindButton( "Lads", "vsay lads" );
+			KeyBindButton( "Shit son", "vsay shitson" );
+			KeyBindButton( "Trash smash", "vsay trashsmash" );
+			KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
+
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
 	}
 
 	ImGui::EndChild();
@@ -405,18 +420,24 @@ static void SettingsVideo() {
 		ImGui::PopItemWidth();
 	}
 
-	if( ImGui::Button( "Apply mode changes" ) ) {
-		Cvar_Set( "vid_mode", temp( "{}", mode ) );
-	}
+	if( !( mode == VID_GetWindowMode() ) ) {
 
-	ImGui::SameLine();
-	if( ImGui::Button( "Discard mode changes" ) ) {
-		reset_video_settings = true;
+		if( ImGui::Button( "Apply" ) ) {
+			Cvar_Set( "vid_mode", temp( "{}", mode ) );
+			reset_video_settings = true;
+		}
+
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+		if( ImGui::Button( "Discard" ) ) {
+			reset_video_settings = true;
+		} ImGui::PopStyleColor( 3 );
 	}
 
 	ImGui::Separator();
-
-	ImGui::Text( "These settings are saved automatically" );
 
 	{
 		SettingLabel( "Anti-aliasing" );
@@ -473,8 +494,6 @@ static void SettingsVideo() {
 }
 
 static void SettingsAudio() {
-	ImGui::Text( "These settings are saved automatically" );
-
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
 	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
@@ -487,14 +506,8 @@ static void Settings() {
 
 	ImGui::SameLine();
 
-	if( ImGui::Button( "MOUSE" ) ) {
-		settings_state = SettingsState_Mouse;
-	}
-
-	ImGui::SameLine();
-
-	if( ImGui::Button( "KEYS" ) ) {
-		settings_state = SettingsState_Keys;
+	if( ImGui::Button( "CONTROLS" ) ) {
+		settings_state = SettingsState_Controls;
 	}
 
 	ImGui::SameLine();
@@ -512,10 +525,8 @@ static void Settings() {
 
 	if( settings_state == SettingsState_General )
 		SettingsGeneral();
-	else if( settings_state == SettingsState_Mouse )
-		SettingsMouse();
-	else if( settings_state == SettingsState_Keys )
-		SettingsKeys();
+	else if( settings_state == SettingsState_Controls )
+		SettingsControls();
 	else if( settings_state == SettingsState_Video )
 		SettingsVideo();
 	else if( settings_state == SettingsState_Audio )
@@ -886,7 +897,7 @@ static void GameMenu() {
 				}
 
 				{
-					const Material * icon = FindMaterial( "gfx/hud/icons/weapon/weap_none" );
+					const Material * icon = FindMaterial( "weapons/weap_none" );
 					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					ImGuiColorToken pink = ImGuiColorToken( 255, 53, 255, 64 );
 

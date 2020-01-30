@@ -569,7 +569,6 @@ enum {
 
 // vsay tokens list
 enum {
-	VSAY_GENERIC,
 	VSAY_AFFIRMATIVE,
 	VSAY_NEGATIVE,
 	VSAY_YES,
@@ -595,7 +594,15 @@ enum {
 	VSAY_BOOMSTICK,
 	VSAY_OK,
 
-	VSAY_TOTAL = 128
+	Vsay_Cya,
+	Vsay_GetGood,
+	Vsay_HitTheShowers,
+	Vsay_Lads,
+	Vsay_ShitSon,
+	Vsay_TrashSmash,
+	Vsay_WowYourTerrible,
+
+	VSAY_TOTAL
 };
 
 // SyncEntityState->event values
@@ -752,10 +759,6 @@ struct WeaponDef {
 	const char * description;
 	int cost;
 
-	const char * precache_models;
-	const char * precache_sounds;
-	const char * precache_images;
-
 	int projectile_count;
 	int clip_size;
 	unsigned int reload_time;
@@ -782,5 +785,5 @@ const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
 int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState *playerState, int buttons, int msecs, int timeDelta );
 trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) );
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );

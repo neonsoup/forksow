@@ -73,7 +73,7 @@ trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, ve
 	return NULL;
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) ) {
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) ) {
 	vec3_t dir, end;
 	vec3_t mins = { -0.5, -0.5, -0.5 };
 	vec3_t maxs = { 0.5, 0.5, 0.5 };
@@ -213,18 +213,17 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 			return player->weapon;
 		}
 
-		if( def->clip_size != 0 && player->weapons[ player->weapon ].ammo == 0 ) {
-			player->weapon_time = def->reload_time;
-			player->weapon_state = WEAPON_STATE_RELOADING;
-		}
-		else {
-			player->weapon_state = WEAPON_STATE_READY;
-		}
+		player->weapon_state = WEAPON_STATE_READY;
 	}
 
 	if( player->weapon_state == WEAPON_STATE_READY ) {
 		if( player->weapon_time > 0 ) {
 			return player->weapon;
+		}
+
+		if( def->clip_size != 0 && player->weapons[ player->weapon ].ammo == 0 ) {
+			player->weapon_time = def->reload_time;
+			player->weapon_state = WEAPON_STATE_RELOADING;
 		}
 
 		if( !GS_ShootingDisabled( gs ) ) {
@@ -243,8 +242,6 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 						player->weapons[ player->weapon ].ammo--;
 						if( player->weapons[ player->weapon ].ammo == 0 ) {
 							gs->api.PredictedEvent( player->POVnum, EV_NOAMMOCLICK, 0 );
-							player->weapon_time = def->reload_time;
-							player->weapon_state = WEAPON_STATE_RELOADING;
 						}
 					}
 				}

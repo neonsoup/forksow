@@ -14,8 +14,6 @@ const WeaponDef gs_weaponDefs[] = {
 		"Knife people in the face",
 		0,
 
-		NULL, NULL, NULL,
-
 		0,                              // projectiles fired each shot
 		0, // clip size
 		0, // reload time
@@ -23,15 +21,15 @@ const WeaponDef gs_weaponDefs[] = {
 		//timings (in msecs)->
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		450,                            // refire time
-		62,                             // projectile timeout  / projectile range for instant weapons
+		500,                            // refire time
+		70,                             // projectile timeout  / projectile range for instant weapons
 		0,                              // recoil
 		false,                          // smooth refire
 
 		//damages
-		20,                             // damage
+		25,                             // damage
 		0,                              // selfdamage ratio
-		80,                             // knockback
+		0,                             // knockback
 		0,                              // splash radius
 		0,                              // splash minimum damage
 		0,                              // splash minimum knockback
@@ -47,24 +45,22 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots fast direct bullets touching enemies at any range",
 		100,
 
-		NULL, NULL, NULL,
-
 		1,                              // projectiles fired each shot
 		30, // clip size
-		1000, // reload time
+		1500, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		70,                             // refire time
+		75,                             // refire time
 		6000,                           // projectile timeout
-		2.5f,                           // recoil
+		2.75f,                           // recoil
 		false,                          // smooth refire
 
 		//damages
 		7,                              // damage
 		0,                              // selfdamage ratio
-		16,                             // knockback
+		15,                             // knockback
 		0,                              // splash radius
 		0,                              // splash minimum damage
 		0,                              // splash minimum knockback
@@ -80,31 +76,29 @@ const WeaponDef gs_weaponDefs[] = {
 		"Basically a shotgun",
 		100,
 
-		NULL, NULL, NULL,
-
 		25,                             // projectiles fired each shot
 		5, // clip size
-		1500, // reload time
+		2250, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1000,                           // refire time
+		1400,                           // refire time
 		8192,                           // projectile timeout / projectile range for instant weapons
-		20.0f,                              // recoil
+		25.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
 		2,                              // damage
 		0,                              // selfdamage ratio (rg cant selfdamage)
-		7,                              // knockback
+		6,                              // knockback
 		0,                              // splash radius
 		0,                              // splash minimum damage
 		0,                              // splash minimum knockback
 
 		//projectile def
 		INSTANT,                        // speed
-		40,                             // spread
+		50,                             // spread
 	},
 
 	{
@@ -113,19 +107,16 @@ const WeaponDef gs_weaponDefs[] = {
 		"Deprecated gun, enjoy it while it lasts nerds",
 		100,
 
-		PATH_GRENADE_MODEL,
-		NULL, NULL,
-
 		1,                              // projectiles fired each shot
 		3, // clip size
-		1000, // reload time
+		2000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1000,                            // refire time
+		1750,                            // refire time
 		2000,                           // projectile timeout
-		0,                              // recoil
+		25.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
@@ -137,7 +128,7 @@ const WeaponDef gs_weaponDefs[] = {
 		50,                             // splash minimum knockback
 
 		//projectile def
-		1000,                           // speed
+		1500,                           // speed
 		0,                              // spread
 	},
 
@@ -147,24 +138,20 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots slow moving rockets that deal damage in an area and push bodies away",
 		200,
 
-		PATH_ROCKET_MODEL,
-		S_WEAPON_ROCKET_FLY,
-		NULL,
-
 		1,                              // projectiles fired each shot
 		4, // clip size
-		1000, // reload time
+		1500, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
 		10000,                          // projectile timeout
-		0,                              // recoil
+		10.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
-		40,                             // damage
+		45,                             // damage
 		0.75f,                          // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
@@ -172,7 +159,7 @@ const WeaponDef gs_weaponDefs[] = {
 		50,                             // splash minimum knockback
 
 		//projectile def
-		1350,                           // speed
+		1400,                           // speed
 		0,                              // spread
 	},
 
@@ -182,20 +169,16 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots fast projectiles that deal damage in an area",
 		100,
 
-		PATH_PLASMA_MODEL,
-		S_WEAPON_PLASMAGUN_FLY,
-		NULL,
-
 		1,                              // projectiles fired each shot
 		30, // clip size
-		1000, // reload time
+		1500, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		100,                            // refire time
 		10000,                           // projectile timeout
-		0.25f,                              // recoil
+		1.5f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
@@ -217,10 +200,6 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots a continuous trail doing quick but low damage at a certain range",
 		200,
 
-		NULL,
-		S_WEAPON_LASERGUN_HUM " " S_WEAPON_LASERGUN_STOP " " S_WEAPON_LASERGUN_HIT,
-		NULL,
-
 		1,                              // projectiles fired each shot
 		50, // clip size
 		1000, // reload time
@@ -229,12 +208,12 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		50,                             // refire time
-		700,                            // projectile timeout / projectile range for instant weapons
+		800,                            // projectile timeout / projectile range for instant weapons
 		0,                              // recoil
 		true,                           // smooth refire
 
 		//damages
-		4,                              // damage
+		5,                              // damage
 		0,                              // selfdamage ratio
 		14,                             // knockback
 		0,                              // splash radius
@@ -252,20 +231,16 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots a direct laser hit doing pretty high damage",
 		200,
 
-		NULL,
-		S_WEAPON_ELECTROBOLT_HIT,
-		NULL,
-
 		1,                              // projectiles fired each shot
 		3, // clip size
-		1000, // reload time
+		2250, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1250,                           // refire time
+		1500,                           // refire time
 		ELECTROBOLT_RANGE,              // range
-		0,                              // recoil
+		15.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages

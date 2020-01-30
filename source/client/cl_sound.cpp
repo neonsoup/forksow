@@ -17,7 +17,7 @@
 
 struct SoundEffect {
 	struct PlaybackConfig {
-		StringHash sounds[ 4 ];
+		StringHash sounds[ 8 ];
 		u8 num_random_sounds;
 
 		float delay;
@@ -669,6 +669,8 @@ static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, in
 
 void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume, float attenuation ) {
 	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, attenuation, PlayingSoundType_Position, false );
+	if( ps == NULL )
+		return;
 	ps->origin = origin;
 }
 
