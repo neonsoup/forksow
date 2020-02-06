@@ -214,7 +214,7 @@ void bombStartPlanting( cBombSite @site ) {
 	bombActionTime = levelTime;
 	bombState = BombState_Planting;
 
-	G_Sound( @bombModel, 0, sndPlantStart, ATTN_NORM );
+	G_Sound( @bombModel, 0, sndPlantStart );
 }
 
 void bombPlanted() {
@@ -271,7 +271,7 @@ void bombExplode() {
 	bombState = BombState_Exploding;
 	@defuser = null;
 
-	G_Sound( @bombModel, 0, sndGoodGame, ATTN_DISTANT );
+	G_Sound( @bombModel, 0, sndGoodGame );
 }
 
 void resetBomb() {
@@ -340,7 +340,7 @@ void bombThink() {
 			}
 
 			if( levelTime > bombNextBeep ) {
-				G_PositionedSound( bombModel.origin, CHAN_AUTO, sndBeep, ATTN_DISTANT );
+				G_PositionedSound( bombModel.origin, CHAN_AUTO, sndBeep );
 
 				uint remainingTime = bombActionTime - levelTime;
 

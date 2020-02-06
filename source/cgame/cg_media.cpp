@@ -28,8 +28,7 @@ void CG_RegisterMediaSounds() {
 		cgs.media.sfxWeaponHit[i] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
 	cgs.media.sfxWeaponKill = FindSoundEffect( S_WEAPON_KILL );
 	cgs.media.sfxWeaponHitTeam = FindSoundEffect( S_WEAPON_HIT_TEAM );
-	cgs.media.sfxWeaponUp = FindSoundEffect( "weapons/switch" );
-	cgs.media.sfxWeaponUpNoAmmo = FindSoundEffect( "weapons/noammo" );
+	cgs.media.sfxWeaponNoAmmo = FindSoundEffect( "weapons/noammo" );
 
 	cgs.media.sfxTeleportIn = FindSoundEffect( S_TELEPORT );
 	cgs.media.sfxTeleportOut = FindSoundEffect( S_TELEPORT );
@@ -53,6 +52,7 @@ void CG_RegisterMediaSounds() {
 
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = FindSoundEffect( "weapons/lg/hum" );
+	cgs.media.sfxLasergunBeam = FindSoundEffect( "weapons/lg/beam" );
 	cgs.media.sfxLasergunStop = FindSoundEffect( "weapons/lg/stop" );
 	cgs.media.sfxLasergunHit = FindSoundEffect( "weapons/lg/hit" );
 
@@ -64,6 +64,8 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxSpikesRetract = FindSoundEffect( "sounds/spikes/retract" );
 
 	cgs.media.sfxFall = FindSoundEffect( "players/fall" );
+
+	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
 
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = FindSoundEffect( S_VSAY_AFFIRMATIVE );

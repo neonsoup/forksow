@@ -24,10 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_collision.h"
 #include "gameshared/gs_public.h"
 
-/*
-* GS_TraceBullet
-*/
-trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
+trace_t * GS_TraceBullet( const gs_state_t * gs, trace_t * trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
 	vec3_t end;
 	bool water = false;
 	vec3_t water_start;
@@ -73,7 +70,7 @@ trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, ve
 	return NULL;
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) ) {
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) ) {
 	vec3_t dir, end;
 	vec3_t mins = { -0.5, -0.5, -0.5 };
 	vec3_t maxs = { 0.5, 0.5, 0.5 };
@@ -89,13 +86,6 @@ void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, ve
 	}
 }
 
-
-//============================================================
-//
-//		PLAYER WEAPON THINKING
-//
-//============================================================
-
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player ) {
 	for( int weapon = Weapon_Count - 1; weapon >= 0; weapon-- ) {
 		if( !player->weapons[ weapon ].owned )
@@ -110,10 +100,7 @@ static bool GS_CheckAmmoInWeapon( const SyncPlayerState * player, WeaponType wea
 	return def->clip_size == 0 || player->weapons[ weapon ].ammo > 0;
 }
 
-/*
-* GS_ThinkPlayerWeapon
-*/
-int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int buttons, int msecs, int timeDelta ) {
+WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int buttons, int msecs, int timeDelta ) {
 	bool refire = false;
 
 	assert( player->pending_weapon <= Weapon_Count );
@@ -128,14 +115,14 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 	}
 
 	if( player->pmove.pm_type != PM_NORMAL ) {
-		player->weapon_state = WEAPON_STATE_READY;
+		player->weapon_state = WeaponState_Ready;
 		player->pending_weapon = Weapon_Count;
 		player->weapon = Weapon_Count;
 		player->weapon_time = 0;
 		return player->weapon;
 	}
 
-	if( player->pmove.stats[PM_STAT_NOUSERCONTROL] > 0 ) {
+	if( player->pmove.no_control_time > 0 ) {
 		buttons = 0;
 	}
 
@@ -147,34 +134,40 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 
 	const WeaponDef * def = GS_GetWeaponDef( player->weapon );
 
+	if( player->weapon_state == WeaponState_FiringSemiAuto ) {
+		if( ( buttons & BUTTON_ATTACK ) == 0 ) {
+			player->weapon_state = WeaponState_Firing;
+		}
+		else if( player->weapon_time > 0 ) {
+			return player->weapon;
+		}
+	}
+
 	// during cool-down time it can shoot again or go into reload time
-	if( player->weapon_state == WEAPON_STATE_REFIRE ) {
+	if( player->weapon_state == WeaponState_Firing ) {
 		if( player->weapon_time > 0 ) {
 			return player->weapon;
 		}
 
 		refire = true;
 
-		player->weapon_state = WEAPON_STATE_READY;
+		player->weapon_state = WeaponState_Ready;
 	}
 
 	// there is a weapon to be changed
 	if( player->weapon != player->pending_weapon ) {
-		if( player->weapon_state == WEAPON_STATE_READY || player->weapon_state == WEAPON_STATE_ACTIVATING || player->weapon_state == WEAPON_STATE_RELOADING ) {
-			player->weapon_state = WEAPON_STATE_DROPPING;
+		if( player->weapon_state == WeaponState_Ready || player->weapon_state == WeaponState_SwitchingIn || player->weapon_state == WeaponState_Reloading ) {
+			player->weapon_state = WeaponState_SwitchingOut;
 			player->weapon_time = def->weapondown_time;
-
-			if( def->weapondown_time ) {
-				gs->api.PredictedEvent( player->POVnum, EV_WEAPONDROP, 0 );
-			}
+			gs->api.PredictedEvent( player->POVnum, EV_WEAPONDROP, 0 );
 		}
 	}
 
-	if( player->weapon_state == WEAPON_STATE_RELOADING ) {
+	if( player->weapon_state == WeaponState_Reloading ) {
 		if( player->weapon_time > 0 ) {
 			if( ( buttons & BUTTON_ATTACK ) != 0 && GS_CheckAmmoInWeapon( player, player->weapon ) ) {
 				player->weapon_time = 0;
-				player->weapon_state = WEAPON_STATE_READY;
+				player->weapon_state = WeaponState_Ready;
 			}
 			else {
 				return player->weapon;
@@ -182,13 +175,13 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 		}
 		else {
 			player->weapons[ player->weapon ].ammo = def->clip_size;
-			player->weapon_state = WEAPON_STATE_READY;
+			player->weapon_state = WeaponState_Ready;
 			gs->api.PredictedEvent( player->POVnum, EV_WEAPONACTIVATE, player->weapon << 1 );
 		}
 	}
 
 	// do the change
-	if( player->weapon_state == WEAPON_STATE_DROPPING ) {
+	if( player->weapon_state == WeaponState_SwitchingOut ) {
 		if( player->weapon_time > 0 ) {
 			return player->weapon;
 		}
@@ -198,7 +191,7 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 
 		// update the firedef
 		def = GS_GetWeaponDef( player->weapon );
-		player->weapon_state = WEAPON_STATE_ACTIVATING;
+		player->weapon_state = WeaponState_SwitchingIn;
 		player->weapon_time = def->weaponup_time;
 
 		int parm = player->weapon << 1;
@@ -208,34 +201,35 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 		gs->api.PredictedEvent( player->POVnum, EV_WEAPONACTIVATE, parm );
 	}
 
-	if( player->weapon_state == WEAPON_STATE_ACTIVATING ) {
+	if( player->weapon_state == WeaponState_SwitchingIn ) {
 		if( player->weapon_time > 0 ) {
 			return player->weapon;
 		}
 
-		player->weapon_state = WEAPON_STATE_READY;
+		player->weapon_state = WeaponState_Ready;
 	}
 
-	if( player->weapon_state == WEAPON_STATE_READY ) {
+	if( player->weapon_state == WeaponState_Ready ) {
 		if( player->weapon_time > 0 ) {
 			return player->weapon;
 		}
 
 		if( def->clip_size != 0 && player->weapons[ player->weapon ].ammo == 0 ) {
 			player->weapon_time = def->reload_time;
-			player->weapon_state = WEAPON_STATE_RELOADING;
+			player->weapon_state = WeaponState_Reloading;
 		}
 
 		if( !GS_ShootingDisabled( gs ) ) {
 			if( buttons & BUTTON_ATTACK ) {
 				if( GS_CheckAmmoInWeapon( player, player->weapon ) ) {
 					player->weapon_time = def->refire_time;
-					player->weapon_state = WEAPON_STATE_REFIRE;
+					player->weapon_state = def->mode == FiringMode_SemiAuto ? WeaponState_FiringSemiAuto : WeaponState_Firing;
 
-					if( refire && def->smooth_refire ) {
+					if( refire && def->mode == FiringMode_Smooth ) {
 						gs->api.PredictedEvent( player->POVnum, EV_SMOOTHREFIREWEAPON, player->weapon );
-					} else {
-						gs->api.PredictedEvent( player->POVnum, EV_FIREWEAPON, player->weapon );
+					}
+					else {
+						gs->api.PredictedFireWeapon( player->POVnum, player->weapon );
 					}
 
 					if( def->clip_size > 0 ) {
@@ -248,7 +242,7 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 			}
 			else if( ( buttons & BUTTON_RELOAD ) && def->clip_size != 0 && player->weapons[ player->weapon ].ammo < def->clip_size ) {
 				player->weapon_time = def->reload_time;
-				player->weapon_state = WEAPON_STATE_RELOADING;
+				player->weapon_state = WeaponState_Reloading;
 			}
 		}
 	}
@@ -257,5 +251,5 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 }
 
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon ) {
-	return ( player->pmove.stats[ PM_STAT_FEATURES ] & PMFEAT_WEAPONSWITCH ) != 0 && player->weapons[ weapon ].owned;
+	return ( player->pmove.features & PMFEAT_WEAPONSWITCH ) != 0 && player->weapons[ weapon ].owned;
 }

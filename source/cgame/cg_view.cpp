@@ -203,11 +203,11 @@ static float CG_CalcViewFov( void ) {
 	fov = cg_fov->value;
 	zoomfov = cg_zoomfov->value;
 
-	if( !cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] ) {
+	if( cg.predictedPlayerState.pmove.zoom_time == 0 ) {
 		return fov;
 	}
 
-	frac = (float)cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] / (float)ZOOMTIME;
+	frac = float( cg.predictedPlayerState.pmove.zoom_time ) / float( ZOOMTIME );
 	return fov - ( fov - zoomfov ) * frac;
 }
 
@@ -244,7 +244,7 @@ static void CG_CalcViewBob( void ) {
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid ) {
-				if( cg.predictedPlayerState.pmove.stats[PM_STAT_CROUCHTIME] ) {
+				if( cg.predictedPlayerState.pmove.crouch_time != 0 ) {
 					bobScale = 1.5f;
 				} else {
 					bobScale = 2.5f;
@@ -451,7 +451,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	// interpolate fov and viewheight
 	if( !teleported ) {
 		playerState->viewheight = ops->viewheight + cg.lerpfrac * ( ps->viewheight - ops->viewheight );
-		playerState->pmove.stats[PM_STAT_ZOOMTIME] = ops->pmove.stats[PM_STAT_ZOOMTIME] + cg.lerpfrac * ( ps->pmove.stats[PM_STAT_ZOOMTIME] - ops->pmove.stats[PM_STAT_ZOOMTIME] );
+		playerState->pmove.zoom_time = Lerp( ops->pmove.zoom_time, cg.lerpfrac, ps->pmove.zoom_time );
 	}
 }
 
@@ -604,51 +604,6 @@ static void CG_UpdateChaseCam( void ) {
 	if( chaseStep != 0 ) {
 		CG_ChaseStep( chaseStep );
 		chaseCam.key_pressed = true;
-	}
-}
-
-/*
-* CG_SetupRefDef
-*/
-#define WAVE_AMPLITUDE  0.015   // [0..1]
-#define WAVE_FREQUENCY  0.6     // [0..1]
-static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
-	memset( rd, 0, sizeof( *rd ) );
-
-	// view rectangle size
-	rd->x = 0;
-	rd->y = 0;
-	rd->width = frame_static.viewport_width;
-	rd->height = frame_static.viewport_height;
-
-	rd->scissor_x = 0;
-	rd->scissor_y = 0;
-	rd->scissor_width = frame_static.viewport_width;
-	rd->scissor_height = frame_static.viewport_height;
-
-	rd->fov_x = view->fov_x;
-	rd->fov_y = view->fov_y;
-
-	rd->time = cl.serverTime;
-
-	rd->minLight = 0.3f;
-
-	VectorCopy( cg.view.origin, rd->vieworg );
-	Matrix3_Copy( cg.view.axis, rd->viewaxis );
-	VectorInverse( &rd->viewaxis[AXIS_RIGHT] );
-
-	VectorCopy( view->origin, rd->vieworg );
-
-	AnglesToAxis( view->angles, rd->viewaxis );
-
-	rd->rdflags = CG_RenderFlags();
-
-	// warp if underwater
-	if( rd->rdflags & RDF_UNDERWATER ) {
-		float phase = rd->time * 0.001f * WAVE_FREQUENCY * 2.0f * PI;
-		float v = WAVE_AMPLITUDE * ( sinf( phase ) - 1.0f ) + 1;
-		rd->fov_x *= v;
-		rd->fov_y *= v;
 	}
 }
 
@@ -941,15 +896,15 @@ static void DrawSilhouettes() {
 	}
 }
 
-#include <cmath>
+float global_attenuation = 1.0f;
+float global_refdist = 125.0f;
+float global_maxdist = 8000.0f;
 
 /*
 * CG_RenderView
 */
 void CG_RenderView( unsigned extrapolationTime ) {
 	ZoneScoped;
-
-	refdef_t *rd = &cg.view.refdef;
 
 	cg.frameCount++;
 
@@ -1055,8 +1010,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawSkybox();
 
 	CG_AddLocalSounds();
-
-	CG_SetupRefDef( &cg.view, rd );
 
 	S_Update( FromQF3( cg.view.origin ), FromQF3( cg.view.velocity ), cg.view.axis );
 

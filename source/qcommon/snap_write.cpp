@@ -426,33 +426,22 @@ static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
 /*
 * SNAP_GainForAttenuation
 */
-static float SNAP_GainForAttenuation( float dist, float attenuation ) {
+static float SNAP_GainForAttenuation( float dist ) {
 	int model = S_DEFAULT_ATTENUATION_MODEL;
 	float maxdistance = S_DEFAULT_ATTENUATION_MAXDISTANCE;
 	float refdistance = S_DEFAULT_ATTENUATION_REFDISTANCE;
 
-	return Q_GainForAttenuation( model, maxdistance, refdistance, dist, attenuation );
+	return Q_GainForAttenuation( model, maxdistance, refdistance, dist, ATTN_DISTANT );
 }
 
 /*
 * SNAP_SnapCullSoundEntity
 */
-static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin,
-									float attenuation ) {
-	float gain, dist;
-
-	if( !attenuation ) {
-		return false;
-	}
-
+static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin ) {
 	// extend the influence sphere cause the player could be moving
-	dist = Distance( ent->s.origin, listener_origin ) - 128;
-	gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist, attenuation );
-	if( gain > 0.05 ) { // curved attenuations can keep barely audible sounds for long distances
-		return false;
-	}
-
-	return true;
+	float dist = Distance( ent->s.origin, listener_origin ) - 128;
+	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
+	return gain > 0.05f;
 }
 
 /*
@@ -485,6 +474,10 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		return true;
 	}
 
+	if( ( ent->r.svflags & SVF_NEVEROWNER ) && ( clent && ent->s.ownerNum == clent->s.number ) ) {
+		return true;
+	}
+
 	if( ent->r.svflags & SVF_BROADCAST ) { // send to everyone
 		return false;
 	}
@@ -496,6 +489,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	if( ent->r.areanum < 0 ) {
 		return true;
 	}
+
 	if( viewarea >= 0 ) {
 		// this is the same as CM_AreasConnected but portal's visibility included
 		areabits = frame->areabits + viewarea * CM_AreaRowSize( cms );
@@ -514,6 +508,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	if( ent->r.svflags & SVF_SOUNDCULL ) {
 		snd_cull_only = true;
 	}
+
 	// if not a sound entity but the entity is only a sound
 	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
 		snd_cull_only = true;
@@ -522,13 +517,14 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	// PVS culling alone may not be used on pure sounds, entities with
 	// events and regular entities emitting sounds
 	if( snd_cull_only || ent->s.events[0] || ent->s.sound != EMPTY_HASH ) {
-		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg, ent->s.attenuation );
+		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg );
 	}
 
 	// pure sound emitters don't use PVS culling at all
 	if( snd_cull_only && snd_culled ) {
 		return true;
 	}
+
 	return snd_culled && SNAP_PVSCullEntity( cms, fatpvs, ent );    // cull by PVS
 }
 

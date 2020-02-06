@@ -172,7 +172,9 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 static const asEnumVal_t asWeaponTypeEnumVals[] =
 {
 	ASLIB_ENUM_VAL( Weapon_Knife ),
+	ASLIB_ENUM_VAL( Weapon_Pistol ),
 	ASLIB_ENUM_VAL( Weapon_MachineGun ),
+	ASLIB_ENUM_VAL( Weapon_Deagle ),
 	ASLIB_ENUM_VAL( Weapon_Shotgun ),
 	ASLIB_ENUM_VAL( Weapon_GrenadeLauncher ),
 	ASLIB_ENUM_VAL( Weapon_RocketLauncher ),
@@ -296,19 +298,18 @@ static const asEnumVal_t asSVFlagEnumVals[] =
 
 static const asEnumVal_t asMeaningsOfDeathEnumVals[] =
 {
+	ASLIB_ENUM_VAL( MOD_UNKNOWN ),
 	ASLIB_ENUM_VAL( MOD_GUNBLADE ),
+	ASLIB_ENUM_VAL( MOD_PISTOL ),
 	ASLIB_ENUM_VAL( MOD_MACHINEGUN ),
+	ASLIB_ENUM_VAL( MOD_DEAGLE ),
 	ASLIB_ENUM_VAL( MOD_RIOTGUN ),
 	ASLIB_ENUM_VAL( MOD_GRENADE ),
 	ASLIB_ENUM_VAL( MOD_ROCKET ),
 	ASLIB_ENUM_VAL( MOD_PLASMA ),
 	ASLIB_ENUM_VAL( MOD_ELECTROBOLT ),
 	ASLIB_ENUM_VAL( MOD_LASERGUN ),
-	ASLIB_ENUM_VAL( MOD_GRENADE_SPLASH ),
-	ASLIB_ENUM_VAL( MOD_ROCKET_SPLASH ),
-	ASLIB_ENUM_VAL( MOD_PLASMA_SPLASH ),
 
-	// World damage
 	ASLIB_ENUM_VAL( MOD_SLIME ),
 	ASLIB_ENUM_VAL( MOD_LAVA ),
 	ASLIB_ENUM_VAL( MOD_CRUSH ),
@@ -820,7 +821,7 @@ static void objectGameClient_InventoryClear( gclient_t *self ) {
 
 	self->ps.weapon = Weapon_Count;
 	self->ps.pending_weapon = Weapon_Count;
-	self->ps.weapon_state = WEAPON_STATE_READY;
+	self->ps.weapon_state = WeaponState_Ready;
 }
 
 static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
@@ -864,52 +865,8 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 	trap_GameCmd( PLAYERENT( playerNum ), msg->buffer );
 }
 
-static void objectGameClient_setPMoveFeatures( unsigned int bitmask, gclient_t *self ) {
-	self->ps.pmove.stats[PM_STAT_FEATURES] = ( bitmask & PMFEAT_ALL );
-}
-
-static unsigned int objectGameClient_getPMoveFeatures( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_FEATURES];
-}
-
 static unsigned int objectGameClient_getPressedKeys( gclient_t *self ) {
 	return self->ps.plrkeys;
-}
-
-static void objectGameClient_setPMoveMaxSpeed( float speed, gclient_t *self ) {
-	if( speed < 0.0f ) {
-		self->ps.pmove.stats[PM_STAT_MAXSPEED] = (short)DEFAULT_PLAYERSPEED;
-	} else {
-		self->ps.pmove.stats[PM_STAT_MAXSPEED] = ( (int)speed & 0xFFFF );
-	}
-}
-
-static float objectGameClient_getPMoveMaxSpeed( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_MAXSPEED];
-}
-
-static void objectGameClient_setPMoveJumpSpeed( float speed, gclient_t *self ) {
-	if( speed < 0.0f ) {
-		self->ps.pmove.stats[PM_STAT_JUMPSPEED] = (short)DEFAULT_JUMPSPEED;
-	} else {
-		self->ps.pmove.stats[PM_STAT_JUMPSPEED] = ( (int)speed & 0xFFFF );
-	}
-}
-
-static float objectGameClient_getPMoveJumpSpeed( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_JUMPSPEED];
-}
-
-static void objectGameClient_setPMoveDashSpeed( float speed, gclient_t *self ) {
-	if( speed < 0.0f ) {
-		self->ps.pmove.stats[PM_STAT_DASHSPEED] = (short)DEFAULT_DASHSPEED;
-	} else {
-		self->ps.pmove.stats[PM_STAT_DASHSPEED] = ( (int)speed & 0xFFFF );
-	}
-}
-
-static float objectGameClient_getPMoveDashSpeed( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_DASHSPEED];
 }
 
 static asstring_t *objectGameClient_getUserInfoKey( asstring_t *key, gclient_t *self ) {
@@ -993,15 +950,7 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, execGameCommand, ( const String &in ) ), asFUNCTION( objectGameClient_execGameCommand ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveFeatures, ( uint bitmask ) ), asFUNCTION( objectGameClient_setPMoveFeatures ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveMaxSpeed, ( float speed ) ), asFUNCTION( objectGameClient_setPMoveMaxSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveJumpSpeed, ( float speed ) ), asFUNCTION( objectGameClient_setPMoveJumpSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveDashSpeed, ( float speed ) ), asFUNCTION( objectGameClient_setPMoveDashSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( uint, get_pmoveFeatures, ( ) const ), asFUNCTION( objectGameClient_getPMoveFeatures ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( uint, get_pressedKeys, ( ) const ), asFUNCTION( objectGameClient_getPressedKeys ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( float, get_pmoveMaxSpeed, ( ) const ), asFUNCTION( objectGameClient_getPMoveMaxSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( float, get_pmoveJumpSpeed, ( ) const ), asFUNCTION( objectGameClient_getPMoveJumpSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( float, get_pmoveDashSpeed, ( ) const ), asFUNCTION( objectGameClient_getPMoveDashSpeed ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getUserInfoKey, ( const String &in ) const ), asFUNCTION( objectGameClient_getUserInfoKey ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, printMessage, ( const String &in ) ), asFUNCTION( objectGameClient_printMessage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },
@@ -1035,6 +984,10 @@ static const asProperty_t gameclient_Properties[] =
 	{ ASLIB_PROPERTY_DECL( uint8, progressType ), offsetof( gclient_t, ps.progress_type ) },
 	{ ASLIB_PROPERTY_DECL( uint8, progress ), offsetof( gclient_t, ps.progress ) },
 	{ ASLIB_PROPERTY_DECL( const int64, uCmdTimeStamp ), offsetof( gclient_t, ucmd.serverTimeStamp ) },
+	{ ASLIB_PROPERTY_DECL( uint16, pmoveFeatures ), offsetof( gclient_t, ps.pmove.features ) },
+	{ ASLIB_PROPERTY_DECL( int16, pmoveMaxSpeed ), offsetof( gclient_t, ps.pmove.max_speed ) },
+	{ ASLIB_PROPERTY_DECL( int16, pmoveJumpSpeed ), offsetof( gclient_t, ps.pmove.jump_speed ) },
+	{ ASLIB_PROPERTY_DECL( int16, pmoveDashSpeed ), offsetof( gclient_t, ps.pmove.dash_speed ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -1400,7 +1353,6 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( float, delay ), offsetof( edict_t, delay ) },
 	{ ASLIB_PROPERTY_DECL( float, random ), offsetof( edict_t, random ) },
 	{ ASLIB_PROPERTY_DECL( int, waterLevel ), offsetof( edict_t, waterlevel ) },
-	{ ASLIB_PROPERTY_DECL( float, attenuation ), offsetof( edict_t, attenuation ) },
 	{ ASLIB_PROPERTY_DECL( int, mass ), offsetof( edict_t, mass ) },
 	{ ASLIB_PROPERTY_DECL( int64, timeStamp ), offsetof( edict_t, timeStamp ) },
 
@@ -1632,8 +1584,8 @@ static void asFunc_Error( const asstring_t *str ) {
 	Com_Error( ERR_DROP, "%s", str && str->buffer ? str->buffer : "" );
 }
 
-static void asFunc_G_Sound( edict_t *owner, int channel, u64 sound, float attenuation ) {
-	G_Sound( owner, channel, StringHash( sound ), attenuation );
+static void asFunc_G_Sound( edict_t *owner, int channel, u64 sound ) {
+	G_Sound( owner, channel, StringHash( sound ) );
 }
 
 static int asFunc_DirToByte( asvec3_t *vec ) {
@@ -1748,12 +1700,12 @@ static int asFunc_WeaponCost( WeaponType weapon ) {
 	return GS_GetWeaponDef( weapon )->cost;
 }
 
-static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound, float attenuation ) {
+static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound ) {
 	if( !origin ) {
 		return;
 	}
 
-	G_PositionedSound( origin->v, channel, StringHash( sound ), attenuation );
+	G_PositionedSound( origin->v, channel, StringHash( sound ) );
 }
 
 static void asFunc_G_GlobalSound( int channel, u64 sound ) {
@@ -1828,10 +1780,6 @@ static void asFunc_FireRiotgun( asvec3_t *origin, asvec3_t *angles, int range, i
 	W_Fire_Riotgun( owner, origin->v, angles->v, range, spread, count, damage, knockback, 0 );
 }
 
-static void asFunc_FireBullet( asvec3_t *origin, asvec3_t *angles, int range, int spread, int damage, int knockback, edict_t *owner ) {
-	W_Fire_MG( owner, origin->v, angles->v, range, spread, damage, knockback, 0 );
-}
-
 static const asglobfuncs_t asGameGlobFuncs[] =
 {
 	{ "Entity @G_SpawnEntity( const String &in )", asFUNCTION( asFunc_G_Spawn ), NULL },
@@ -1854,8 +1802,8 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_PrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_PrintMsg ), NULL },
 	{ "void G_CenterPrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_CenterPrintMsg ), NULL },
 	{ "void Com_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
-	{ "void G_Sound( Entity @, int channel, uint64 sound, float attenuation )", asFUNCTION( asFunc_G_Sound ), NULL },
-	{ "void G_PositionedSound( const Vec3 &in, int channel, uint64 sound, float attenuation )", asFUNCTION( asFunc_PositionedSound ), NULL },
+	{ "void G_Sound( Entity @, int channel, uint64 sound )", asFUNCTION( asFunc_G_Sound ), NULL },
+	{ "void G_PositionedSound( const Vec3 &in, int channel, uint64 sound )", asFUNCTION( asFunc_PositionedSound ), NULL },
 	{ "void G_GlobalSound( int channel, uint64 sound )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
 	{ "void G_LocalSound( Client @, int channel, uint64 sound )", asFUNCTION( asFunc_G_LocalSound ), NULL },
 	{ "void G_AnnouncerSound( Client @, uint64 sound, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
@@ -1877,7 +1825,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "Entity @G_FireRocket( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRocket ), NULL },
 	{ "Entity @G_FireGrenade( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireGrenade ), NULL },
 	{ "void G_FireRiotgun( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int count, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRiotgun ), NULL },
-	{ "void G_FireBullet( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireBullet ), NULL },
 
 	{ NULL }
 };

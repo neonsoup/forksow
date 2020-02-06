@@ -9,26 +9,24 @@ void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		emitter.direction_cone.normal = normal;
 		emitter.direction_cone.theta = 90.0f;
 
-		emitter.start_speed = 100.0f;
-		emitter.end_speed = 100.0f;
+		emitter.start_speed = 1000.0f;
+		emitter.end_speed = 1000.0f;
 
-		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
-		emitter.end_color = Vec3( 0.2f, 0.1f, 0.0f );
-		emitter.alpha_distribution.type = RandomDistributionType_Uniform;
-		emitter.alpha_distribution.uniform = 0.1f;
+		emitter.start_color = Vec4( 1.0f, 1.0f, 0.0f, 1.0f );
+		emitter.end_color = Vec3( 1.0f, 1.0f, 0.0f );
 
-		emitter.start_size = 32.0f;
-		emitter.end_size = 32.0f;
+		emitter.start_size = 4.0f;
+		emitter.end_size = 0.0f;
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 16.0f;
+		emitter.size_distribution.uniform = 4.0f;
 
-		emitter.lifetime = 0.8f;
+		emitter.lifetime = 0.1f;
 		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.3f;
+		emitter.lifetime_distribution.uniform = 0.2f;
 
-		emitter.n = 32;
+		emitter.n = 128;
 
-		EmitParticles( &cgs.smoke, emitter );
+		EmitParticles( &cgs.sparks, emitter );
 	}
 
 	{
@@ -111,11 +109,23 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 
 	Vec3 beam_across = Normalize( Cross( -forward, dir ) );
 
+	// "phone wire anti-aliasing"
+	// we should really do this in the shader so it's accurate across the whole beam.
+	// scale width by 8 because our beam textures have their own fade to transparent at the edges.
+	float pixel_scale = tanf( 0.5f * DEG2RAD( cg.view.fov_y ) ) / frame_static.viewport.y;
+	Mat4 VP = frame_static.P * frame_static.V;
+
+	float start_w = ( VP * Vec4( start, 1.0f ) ).w;
+	float start_width = Max2( width, 8.0f * start_w * pixel_scale );
+
+	float end_w = ( VP * Vec4( end, 1.0f ) ).w;
+	float end_width = Max2( width, 8.0f * end_w * pixel_scale );
+
 	Vec3 positions[] = {
-		start + width * beam_across * 0.5f,
-		start - width * beam_across * 0.5f,
-		end + width * beam_across * 0.5f,
-		end - width * beam_across * 0.5f,
+		start + start_width * beam_across * 0.5f,
+		start - start_width * beam_across * 0.5f,
+		end + end_width * beam_across * 0.5f,
+		end - end_width * beam_across * 0.5f,
 	};
 
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
@@ -130,7 +140,12 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 		Vec2( repetitions - half_pixel.x, 1.0f - half_pixel.y ),
 	};
 
-	constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
+	RGBA8 colors[] = {
+		RGBA8( 255, 255, 255, 255 * width / start_width ),
+		RGBA8( 255, 255, 255, 255 * width / start_width ),
+		RGBA8( 255, 255, 255, 255 * width / end_width ),
+		RGBA8( 255, 255, 255, 255 * width / end_width ),
+	};
 
 	u16 base_index = DynamicMeshBaseIndex();
 	u16 indices[] = { 0, 1, 2, 1, 3, 2 };
@@ -139,6 +154,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	}
 
 	PipelineState pipeline = MaterialToPipelineState( material, color );
+	pipeline.shader = &shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );

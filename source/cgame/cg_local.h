@@ -111,8 +111,7 @@ typedef struct {
 
 typedef struct {
 	// sounds
-	const SoundEffect * sfxWeaponUp;
-	const SoundEffect * sfxWeaponUpNoAmmo;
+	const SoundEffect * sfxWeaponNoAmmo;
 
 	const SoundEffect * sfxWeaponHit[4];
 	const SoundEffect * sfxWeaponKill;
@@ -138,6 +137,7 @@ typedef struct {
 	const SoundEffect * sfxPlasmaHit;
 
 	const SoundEffect * sfxLasergunHum;
+	const SoundEffect * sfxLasergunBeam;
 	const SoundEffect * sfxLasergunStop;
 	const SoundEffect * sfxLasergunHit;
 
@@ -151,6 +151,8 @@ typedef struct {
 	const SoundEffect * sfxSpikesRetract;
 
 	const SoundEffect * sfxFall;
+
+	const SoundEffect * sfxTbag;
 
 	// models
 	const Model * modDash;
@@ -217,7 +219,6 @@ typedef struct {
 typedef struct {
 	char name[MAX_QPATH];
 	int hand;
-	struct shader_s *icon;
 } cg_clientInfo_t;
 
 #define MAX_ANGLES_KICKS 3
@@ -251,7 +252,6 @@ typedef struct {
 	vec3_t angles;
 	mat3_t axis;
 	vec3_t velocity;
-	refdef_t refdef;
 } cg_viewdef_t;
 
 #include "cg_democams.h"
@@ -437,7 +437,7 @@ extern cvar_t *cg_hand;
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
 void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
-void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn );
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
 // cg_predict.c
@@ -445,6 +445,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, f
 extern cvar_t *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, int parm );
+void CG_PredictedFireWeapon( int entNum, WeaponType weapon );
 void CG_PredictMovement( void );
 void CG_CheckPredictionError( void );
 void CG_BuildSolidList( void );
@@ -516,10 +517,7 @@ extern cvar_t *cg_volume_hitsound;    // hit sound volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
-extern cvar_t *cg_volume_players; // players sound volume
-extern cvar_t *cg_volume_effects; // world sound volume
 extern cvar_t *cg_volume_announcer; // announcer sounds volume
-extern cvar_t *cg_volume_voicechats; //vsays volume
 extern cvar_t *cg_projectileFireTrail;
 extern cvar_t *cg_bloodTrail;
 extern cvar_t *cg_showBloodTrail;

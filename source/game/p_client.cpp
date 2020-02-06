@@ -54,7 +54,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
-		G_Obituary( self, ( attacker == self ) ? self : world, mod );
+		G_Obituary( self, attacker == self ? self : world, mod );
 	}
 }
 
@@ -111,10 +111,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->think = G_FreeEdict; // body self destruction countdown
 
 	int mod = meansOfDeath;
-	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
-		mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
-		mod == MOD_SPIKES ||
-		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 20 );
+	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
+		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
+		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
@@ -283,7 +282,7 @@ void G_GhostClient( edict_t *ent ) {
 
 	ent->r.client->ps.weapon = Weapon_Count;
 	ent->r.client->ps.pending_weapon = Weapon_Count;
-	ent->r.client->ps.weapon_state = WEAPON_STATE_READY;
+	ent->r.client->ps.weapon_state = WeaponState_Ready;
 	ent->r.client->ps.weapon_time = 0;
 
 	GClip_LinkEntity( ent );
@@ -369,9 +368,9 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.POVnum = ENTNUM( self );
 
 	// set movement info
-	client->ps.pmove.stats[PM_STAT_MAXSPEED] = (short)DEFAULT_PLAYERSPEED;
-	client->ps.pmove.stats[PM_STAT_JUMPSPEED] = (short)DEFAULT_JUMPSPEED;
-	client->ps.pmove.stats[PM_STAT_DASHSPEED] = (short)DEFAULT_DASHSPEED;
+	client->ps.pmove.max_speed = DEFAULT_PLAYERSPEED;
+	client->ps.pmove.jump_speed = DEFAULT_JUMPSPEED;
+	client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 
 	if( ghost ) {
 		self->r.solid = SOLID_NOT;
@@ -379,7 +378,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	} else {
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
-		client->ps.pmove.stats[PM_STAT_FEATURES] = static_cast<unsigned short>( PMFEAT_DEFAULT );
+		client->ps.pmove.features = PMFEAT_DEFAULT;
 	}
 
 	ClientUserinfoChanged( self, client->userinfo );
@@ -407,14 +406,12 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		KillBox( self, MOD_TELEFRAG, vec3_origin );
 	}
 
-	self->s.attenuation = ATTN_NORM;
-
 	self->s.teleported = true;
 
 	// hold in place briefly
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
-	client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] = CLIENT_RESPAWN_FREEZE_DELAY;
+	client->ps.pmove.no_control_time = CLIENT_RESPAWN_FREEZE_DELAY;
 
 	G_UseTargets( spawnpoint, self );
 
@@ -890,11 +887,6 @@ void G_PredictedEvent( int entNum, int ev, int parm ) {
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
 
-		case EV_FIREWEAPON:
-			G_FireWeapon( ent, parm );
-			G_AddEvent( ent, ev, parm, true );
-			break;
-
 		case EV_WEAPONACTIVATE:
 			ent->s.weapon = parm;
 			G_AddEvent( ent, ev, parm, true );
@@ -904,6 +896,21 @@ void G_PredictedEvent( int entNum, int ev, int parm ) {
 			G_AddEvent( ent, ev, parm, true );
 			break;
 	}
+}
+
+void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
+	edict_t * ent = &game.edicts[ entNum ];
+	G_FireWeapon( ent, weapon );
+
+	vec3_t start;
+	VectorCopy( ent->s.origin, start );
+	start[ 2 ] += ent->r.client->ps.viewheight;
+
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, 0, start );
+	event->s.ownerNum = entNum;
+	VectorCopy( ent->r.client->ps.viewangles, event->s.origin2 ); // DirToByte is too inaccurate
+	event->s.weapon = weapon;
+	event->s.team = ent->s.team;
 }
 
 /*
@@ -1089,7 +1096,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 		if( ent->deathTimeStamp + g_respawn_delay_min->integer <= level.time ) {
 			client->resp.snap.buttons |= ucmd->buttons;
 		}
-	} else if( client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] <= 0 ) {
+	} else if( client->ps.pmove.no_control_time <= 0 ) {
 		client->resp.snap.buttons |= ucmd->buttons;
 	}
 

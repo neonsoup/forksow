@@ -23,14 +23,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static int G_MODToWeapon( int mod ) {
 	switch( mod ) {
 		case MOD_GUNBLADE: return Weapon_Knife;
+		case MOD_PISTOL: return Weapon_Pistol;
 		case MOD_MACHINEGUN: return Weapon_MachineGun;
+		case MOD_DEAGLE: return Weapon_Deagle;
 		case MOD_RIOTGUN: return Weapon_Shotgun;
-		case MOD_GRENADE:
-		case MOD_GRENADE_SPLASH: return Weapon_GrenadeLauncher;
-		case MOD_ROCKET:
-		case MOD_ROCKET_SPLASH: return Weapon_RocketLauncher;
-		case MOD_PLASMA:
-		case MOD_PLASMA_SPLASH: return Weapon_Plasma;
+		case MOD_GRENADE: return Weapon_GrenadeLauncher;
+		case MOD_ROCKET: return Weapon_RocketLauncher;
+		case MOD_PLASMA: return Weapon_Plasma;
 		case MOD_ELECTROBOLT: return Weapon_Railgun;
 		case MOD_LASERGUN: return Weapon_Laser;
 	}
@@ -222,7 +221,7 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, const vec3_t base
 	dir[ 2 ] *= VERTICAL_KNOCKBACK_SCALE;
 
 	if( targ->r.client && targ != attacker && !( dflags & DAMAGE_KNOCKBACK_SOFT ) ) {
-		targ->r.client->ps.pmove.stats[PM_STAT_KNOCKBACK] = Clamp( 100, 3 * knockback, 250 );
+		targ->r.client->ps.pmove.knockback_time = Clamp( 100, 3 * knockback, 250 );
 	}
 
 	VectorMA( targ->velocity, push, dir, targ->velocity );

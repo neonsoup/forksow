@@ -82,16 +82,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "MATCH_STATE_POSTMATCH", MATCH_STATE_POSTMATCH },
 	{ "MATCH_STATE_WAITEXIT", MATCH_STATE_WAITEXIT },
 
-	// weapon
-	{ "Weapon_Knife", Weapon_Knife },
-	{ "Weapon_MachineGun", Weapon_MachineGun },
-	{ "Weapon_Shotgun", Weapon_Shotgun },
-	{ "Weapon_GrenadeLauncher", Weapon_GrenadeLauncher },
-	{ "Weapon_RocketLauncher", Weapon_RocketLauncher },
-	{ "Weapon_Plasma", Weapon_Plasma },
-	{ "Weapon_Laser", Weapon_Laser },
-	{ "Weapon_Railgun", Weapon_Railgun },
-
 	{ "CS_CALLVOTE", CS_CALLVOTE },
 	{ "CS_CALLVOTE_REQUIRED_VOTES", CS_CALLVOTE_REQUIRED_VOTES },
 	{ "CS_CALLVOTE_YES_VOTES", CS_CALLVOTE_YES_VOTES },
@@ -185,7 +175,7 @@ static int CG_Paused( const void *parameter ) {
 }
 
 static int CG_GetZoom( const void *parameter ) {
-	return ( !cg.view.thirdperson && ( cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] != 0 ) );
+	return !cg.view.thirdperson && cg.predictedPlayerState.pmove.zoom_time != 0;
 }
 
 static int CG_GetVidWidth( const void *parameter ) {
@@ -346,6 +336,7 @@ static const char * obituaries[] = {
 	"BROKE",
 	"BROKE UP WITH",
 	"BROWN BAGGED",
+	"BRUTALIZED",
 	"BURIED",
 	"BUMMED",
 	"BUMPED",
@@ -379,6 +370,7 @@ static const char * obituaries[] = {
 	"CREAMED",
 	"CRIPPLED",
 	"CRUSHED",
+	"CU IN 2 WEEKS'D"
 	"CULLED",
 	"CULTIVATED",
 	"CURED",
@@ -443,11 +435,13 @@ static const char * obituaries[] = {
 	"EMBARRASSED",
 	"EMBRACED",
 	"ENDED",
+	"ERADICATED",
 	"ERASED",
 	"EXCHANGED",
 	"EXECUTED",
 	"EXERCISED",
 	"EXTERMINATED",
+	"EXTINCTED",
 	"EXTRAPOLATED",
 	"FACED",
 	"FADED",
@@ -475,6 +469,7 @@ static const char * obituaries[] = {
 	"GERRYMANDERED",
 	"GHOSTED",
 	"GLAZED",
+	"GRATED",
 	"GRAVEDUG",
 	"GRILLED",
 	"GUTTED",
@@ -482,6 +477,7 @@ static const char * obituaries[] = {
 	"HARMED",
 	"HURLED",
 	"HURT",
+	"HOLED",
 	"HOSED",
 	"HUMILIATED",
 	"HUMPED",
@@ -510,7 +506,7 @@ static const char * obituaries[] = {
 	"LET GO",
 	"LIKED",
 	"LIQUIDATED",
-	"LIT,"
+	"LIT",
 	"LIVESTREAMED",
 	"LOGGED",
 	"LOOPED",
@@ -530,6 +526,7 @@ static const char * obituaries[] = {
 	"MUTILATED",
 	"NAILED",
 	"NEUTRALIZED",
+	"NEVER AGAINED",
 	"NEXTED",
 	"NOBODIED",
 	"NUKED",
@@ -552,8 +549,10 @@ static const char * obituaries[] = {
 	"PLANTED",
 	"PLASTERED",
 	"PLOWED", //:v_trump:
+	"PLUCKED",
 	"POACHED",
 	"POKED",
+	"POLARIZED",
 	"POOLED",
 	"POUNDED",
 	"PULVERIZED",
@@ -629,6 +628,7 @@ static const char * obituaries[] = {
 	"SPLASHED",
 	"SPLIT",
 	"SPOILED",
+	"SPRAYED",
 	"SPREAD",
 	"SQUASHED",
 	"SQUEEZED",
@@ -636,6 +636,7 @@ static const char * obituaries[] = {
 	"STAMPED OUT",
 	"STEAMROLLED",
 	"STOMPED",
+	"STONED",
 	"STREAMED",
 	"STUFFED",
 	"STYLED ON",
@@ -669,6 +670,7 @@ static const char * obituaries[] = {
 	"UPSET",
 	"VANDALIZED",
 	"VAPED",
+	"VAPORIZED",
 	"VIOLATED",
 	"VULKANIZED",
 	"WASHED",
@@ -697,9 +699,11 @@ static const char * prefixes[] = {
 	"BALL",
 	"BANANA",
 	"BARBIE",
+	"BARSTOOL",
 	"BASEMENT",
 	"BASS",
 	"BBQ",
+	"BEEFCAKE",
 	"BELLY",
 	"BEYONCE",
 	"BINGE",
@@ -728,6 +732,8 @@ static const char * prefixes[] = {
 	"CASINO",
 	"CASSEROLE",
 	"CHAOS",
+	"CHAMPION",
+	"CHEDDAR",
 	"CHEESE",
 	"CHEERFULLY ",
 	"CHICKEN",
@@ -737,6 +743,7 @@ static const char * prefixes[] = {
 	"CLOUD",
 	"CLUTCH",
 	"COASTER",
+	"COCAINE",
 	"COCK",
 	"CODEX",
 	"COMBO",
@@ -770,6 +777,7 @@ static const char * prefixes[] = {
 	"DYNAMITE",
 	"EARLY",
 	"EASILY ",
+	"ELON",
 	"ENERGY",
 	"EYE",
 	"EXPERTLY",
@@ -779,6 +787,7 @@ static const char * prefixes[] = {
 	"FAST",
 	"FATALLY ",
 	"FESTIVAL",
+	"FETUS",
 	"FINGER",
 	"FISH",
 	"FLAT",
@@ -786,8 +795,10 @@ static const char * prefixes[] = {
 	"FOOT",
 	"FRENCH",
 	"FRONT",
+	"FRUITY",
 	"FULL",
 	"FURY",
+	"GANGSTA",
 	"GARBAGE",
 	"GEEK",
 	"GENDER",
@@ -809,6 +820,7 @@ static const char * prefixes[] = {
 	"HAPPY",
 	"HARAMBE",
 	"HEAD",
+	"HERO",
 	"HOLE",
 	"HOLY",
 	"HOLLYWOOD",
@@ -820,6 +832,7 @@ static const char * prefixes[] = {
 	"HYPER",
 	"INDUSTRIAL",
 	"INSIDE",
+	"JAIL",
 	"JAM",
 	"JIMMY",
 	"JOKE",
@@ -839,8 +852,10 @@ static const char * prefixes[] = {
 	"KNEE",
 	"KONY2012",
 	"LAD",
+	"LASER",
 	"LATE",
 	"LEMON",
+	"LEMMING",
 	"LICK",
 	"LITERALLY ",
 	"LONG",
@@ -856,15 +871,19 @@ static const char * prefixes[] = {
 	"MERCY",
 	"MERRILY ",
 	"META",
+	"METAL",
 	"MILDLY ",
 	"MILLENNIUM",
 	"MINT",
+	"MISSILE",
 	"MOLLY",
 	"MONKEY",
 	"MONSTER",
 	"MONUMENTAL",
+	"MOST FROLICKINGLY "
 	"MOUTH",
 	"MVP",
+	"MWAGA",
 	"NASTY",
 	"NEAT",
 	"NEATLY ",
@@ -877,6 +896,7 @@ static const char * prefixes[] = {
 	"OPEN-SOURCE ",
 	"OUT",
 	"PANTY",
+	"PAPRIKASH",
 	"PARTY",
 	"PERFECTLY ",
 	"PERMA",
@@ -887,6 +907,7 @@ static const char * prefixes[] = {
 	"PLANTER",
 	"POWER",
 	"PRANK",
+	"PRISON",
 	"PROUD",
 	"PUMPKIN",
 	"PUSSY",
@@ -900,6 +921,8 @@ static const char * prefixes[] = {
 	"RESPECT",
 	"Rn",
 	"ROBOT",
+	"ROCK",
+	"ROCK 'n' ROLL "
 	"ROFL",
 	"ROLEX",
 	"ROOSTER",
@@ -909,6 +932,7 @@ static const char * prefixes[] = {
 	"RUSSIA",
 	"RUTHLESSLY ",
 	"SACK",
+	"SALMON",
 	"SAD",
 	"SALT",
 	"SASSY",
@@ -937,8 +961,10 @@ static const char * prefixes[] = {
 	"SNAP",
 	"SOFT",
 	"SOFTLY ",
+	"SOLOMONK",
 	"SON",
 	"SOUR",
+	"SPACE",
 	"SPEED",
 	"SPICE",
 	"SPORTSMANSHIP",
@@ -954,6 +980,7 @@ static const char * prefixes[] = {
 	"TENDER",
 	"TENDERLY ",
 	"TERROR",
+	"TESLA",
 	"TINDER",
 	"TITTY",
 	"TOILET",
@@ -966,6 +993,7 @@ static const char * prefixes[] = {
 	"TRULY ",
 	"TURBO",
 	"TURKEY",
+	"ULTIMATE",
 	"ULTRA",
 	"UTTERLY ",
 	"UNIVERSAL",
@@ -984,43 +1012,39 @@ static const char * prefixes[] = {
 	"WONDER",
 };
 
-static const char * RandomObituary() {
-	return random_select( &cls.rng, obituaries );
+static const char * RandomObituary( RNG * rng ) {
+	return random_select( rng, obituaries );
 }
 
-static const char * RandomPrefix( float p ) {
-	if( !random_p( &cls.rng, p ) )
+static const char * RandomPrefix( RNG * rng, float p ) {
+	if( !random_p( rng, p ) )
 		return "";
-	return random_select( &cls.rng, prefixes );
+	return random_select( rng, prefixes );
 }
 
 /*
 * CG_SC_Obituary
 */
 void CG_SC_Obituary( void ) {
-	cg_clientInfo_t *victim, *attacker;
 	int victimNum = atoi( Cmd_Argv( 1 ) );
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
 	int mod = atoi( Cmd_Argv( 3 ) );
-	obituary_t *current;
+	u64 entropy = strtonum( Cmd_Argv( 4 ), S64_MIN, S64_MAX, NULL );
 
-	victim = &cgs.clientInfo[victimNum - 1];
-
-	if( attackerNum ) {
-		attacker = &cgs.clientInfo[attackerNum - 1];
-	} else {
-		attacker = NULL;
-	}
+	cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
+	cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
 
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
-	current = &cg_obituaries[cg_obituaries_current];
+	obituary_t * current = &cg_obituaries[cg_obituaries_current];
+
+	RNG rng = new_rng( entropy, 0 );
 
 	current->time = cls.monotonicTime;
-	if( victim ) {
+	if( victim != NULL ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
 		current->victim_team = cg_entities[victimNum].current.team;
 	}
-	if( attacker ) {
+	if( attacker != NULL ) {
 		Q_strncpyz( current->attacker, attacker->name, sizeof( current->attacker ) );
 		current->attacker_team = cg_entities[attackerNum].current.team;
 	}
@@ -1030,16 +1054,35 @@ void CG_SC_Obituary( void ) {
 		if( victimNum != attackerNum ) {
 			current->type = OBITUARY_NORMAL;
 
+			TempAllocator temp = cls.frame_arena.temp();
+			const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+
+			char attacker_name[ MAX_NAME_CHARS + 1 ];
+			Q_strncpyz( attacker_name, attacker->name, sizeof( attacker_name ) );
+			Q_strupr( attacker_name );
+
+			char victim_name[ MAX_NAME_CHARS + 1 ];
+			Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
+			Q_strupr( victim_name );
+
+			RGB8 attacker_color = CG_TeamColor( current->attacker_team );
+			RGB8 victim_color = CG_TeamColor( current->victim_team );
+
 			if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-				char name[MAX_NAME_CHARS + 1];
-				Q_strncpyz( name, victim->name, sizeof( name ) );
-				Q_strupr( name );
-				CG_CenterPrint( va( "YOU %s%s%s %s", RandomPrefix( 0.05f ), RandomPrefix( 0.5f ), RandomObituary(), name ) );
+				CG_CenterPrint( temp( "YOU {} {}", obituary, victim_name ) );
 			}
-		} else {   // suicide
+
+			CG_AddChat( temp( "{}{} {}{} {}{}",
+				ImGuiColorToken( attacker_color ), attacker_name,
+				ImGuiColorToken( 255, 234, 0, 255 ), obituary,
+				ImGuiColorToken( victim_color ), victim_name
+			) );
+		}
+		else {   // suicide
 			current->type = OBITUARY_SUICIDE;
 		}
-	} else {   // world accidents
+	}
+	else {   // world accidents
 		current->type = OBITUARY_ACCIDENT;
 	}
 }
@@ -1118,22 +1161,25 @@ static void CG_DrawObituaries(
 			case MOD_GUNBLADE:
 				pic = CG_GetWeaponIcon( Weapon_Knife );
 				break;
+			case MOD_PISTOL:
+				pic = CG_GetWeaponIcon( Weapon_Pistol );
+				break;
 			case MOD_MACHINEGUN:
 				pic = CG_GetWeaponIcon( Weapon_MachineGun );
+				break;
+			case MOD_DEAGLE:
+				pic = CG_GetWeaponIcon( Weapon_Deagle );
 				break;
 			case MOD_RIOTGUN:
 				pic = CG_GetWeaponIcon( Weapon_Shotgun );
 				break;
 			case MOD_GRENADE:
-			case MOD_GRENADE_SPLASH:
 				pic = CG_GetWeaponIcon( Weapon_GrenadeLauncher );
 				break;
 			case MOD_ROCKET:
-			case MOD_ROCKET_SPLASH:
 				pic = CG_GetWeaponIcon( Weapon_RocketLauncher );
 				break;
 			case MOD_PLASMA:
-			case MOD_PLASMA_SPLASH:
 				pic = CG_GetWeaponIcon( Weapon_Plasma );
 				break;
 			case MOD_ELECTROBOLT:
@@ -1474,11 +1520,7 @@ enum {
 // Commands' Functions
 //=============================================================================
 
-static bool CG_IsWeaponSelected( int weapon ) {
-	return weapon == cg.predictedPlayerState.pending_weapon;
-}
-
-constexpr float SEL_WEAP_X_OFFSET = 0.25f;
+static constexpr float SEL_WEAP_Y_OFFSET = 0.25f;
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	int num_weapons = 0;
@@ -1508,8 +1550,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, alignment, total_height );
 
-		if( CG_IsWeaponSelected( i ) ) {
-			cury -= ih * SEL_WEAP_X_OFFSET;
+		if( i == cg.predictedPlayerState.pending_weapon ) {
+			cury -= ih * SEL_WEAP_Y_OFFSET;
 		}
 
 		Vec4 color = Vec4( 1.0f );
@@ -1519,7 +1561,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		float ammo_frac = 1.0f;
 
 		if( def->clip_size != 0 ) {
-			if( i == cg.predictedPlayerState.weapon && cg.predictedPlayerState.weapon_state == WEAPON_STATE_RELOADING ) {
+			if( i == cg.predictedPlayerState.weapon && cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
 				ammo_frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
 			}
 			else {

@@ -72,7 +72,9 @@ enum MatchState {
 typedef u8 WeaponType;
 enum WeaponType_ : WeaponType {
 	Weapon_Knife,
+	Weapon_Pistol,
 	Weapon_MachineGun,
+	Weapon_Deagle,
 	Weapon_Shotgun,
 	Weapon_GrenadeLauncher,
 	Weapon_RocketLauncher,
@@ -81,6 +83,22 @@ enum WeaponType_ : WeaponType {
 	Weapon_Railgun,
 
 	Weapon_Count
+};
+
+typedef u8 WeaponState;
+enum WeaponState_ : WeaponState {
+	WeaponState_Ready,
+	WeaponState_SwitchingIn,
+	WeaponState_SwitchingOut,
+	WeaponState_Firing,
+	WeaponState_FiringSemiAuto,
+	WeaponState_Reloading,
+};
+
+enum FiringMode {
+	FiringMode_Auto,
+	FiringMode_Smooth,
+	FiringMode_SemiAuto,
 };
 
 enum ItemType {
@@ -190,8 +208,6 @@ struct SyncEntityState {
 	int64_t linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
-	float attenuation;                  // should be <= 255/16.0 as this is sent as byte
-
 	// server will use this for sound culling in case
 	// the entity has an event attached to it (along with
 	// PVS culling)
@@ -210,34 +226,31 @@ struct SyncEntityState {
 // to rendered a view.  There will only be 10 SyncPlayerState sent each second,
 // but the number of pmove_state_t changes will be relative to client
 // frame rates
-#define PS_MAX_STATS 64
-#define MAX_PM_STATS 16
-
-enum {
-	PM_STAT_FEATURES,
-	PM_STAT_NOUSERCONTROL,
-	PM_STAT_KNOCKBACK,
-	PM_STAT_CROUCHTIME,
-	PM_STAT_ZOOMTIME,
-	PM_STAT_DASHTIME,
-	PM_STAT_WJTIME,
-	PM_STAT_MAXSPEED,
-	PM_STAT_JUMPSPEED,
-	PM_STAT_DASHSPEED,
-};
-
 typedef struct {
 	int pm_type;
 
 	float origin[3];
 	float velocity[3];
-
-	int pm_flags;               // ducked, jump_held, etc
-	int pm_time;                // each unit = 8 ms
-	short stats[MAX_PM_STATS];  // Kurim : timers for knockback, doublejump, walljump
-	int gravity;
 	short delta_angles[3];      // add to command angles to get view direction
 	                            // changed by spawns, rotating objects, and teleporters
+
+	int pm_flags;               // ducked, jump_held, etc
+	int pm_time;
+
+	u16 features;
+
+	s16 no_control_time;
+	s16 knockback_time;
+	s16 crouch_time;
+	s16 tbag_time;
+	s16 zoom_time;
+	s16 dash_time;
+	s16 walljump_time;
+
+	s16 max_speed;
+	s16 jump_speed;
+	s16 dash_speed;
+	s16 gravity;
 } pmove_state_t;
 
 struct SyncPlayerState {
@@ -279,7 +292,7 @@ struct SyncPlayerState {
 
 	s16 health;
 
-	uint8_t weapon_state;
+	WeaponState weapon_state;
 	WeaponType weapon;
 	WeaponType pending_weapon;
 	s16 weapon_time;
@@ -337,6 +350,7 @@ typedef struct {
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, int parm );
+	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
 	const char *( *GetConfigString )( int index );
 } gs_module_api_t;
@@ -523,23 +537,18 @@ static constexpr const char *gs_keyicon_names[] = {
 	"special"
 };
 
-//===============================================================
-
-// means of death
-#define MOD_UNKNOWN 0
-
-typedef enum {
-	MOD_GUNBLADE = 36,
+enum MeansOfDeath {
+	MOD_UNKNOWN,
+	MOD_GUNBLADE,
+	MOD_PISTOL,
 	MOD_MACHINEGUN,
+	MOD_DEAGLE,
 	MOD_RIOTGUN,
 	MOD_GRENADE,
 	MOD_ROCKET,
 	MOD_PLASMA,
 	MOD_ELECTROBOLT,
 	MOD_LASERGUN,
-	MOD_GRENADE_SPLASH,
-	MOD_ROCKET_SPLASH,
-	MOD_PLASMA_SPLASH,
 
 	MOD_SLIME,
 	MOD_LAVA,
@@ -552,9 +561,7 @@ typedef enum {
 
 	MOD_LASER,
 	MOD_SPIKES,
-} mod_damage_t;
-
-//===============================================================
+};
 
 //
 // events, event parms
@@ -616,9 +623,6 @@ typedef enum {
 
 	EV_WEAPONACTIVATE,
 	EV_FIREWEAPON,
-	EV_ELECTROTRAIL,
-	EV_FIRE_RIOTGUN,
-	EV_FIRE_MG,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
 
@@ -659,6 +663,8 @@ typedef enum {
 	EV_SPARKS,
 
 	EV_VSAY,
+
+	EV_TBAG,
 
 	EV_LASER_SPARKS,
 
@@ -743,14 +749,6 @@ enum {
 //===============================================================
 // gs_weapons.c
 
-enum {
-	WEAPON_STATE_READY,
-	WEAPON_STATE_ACTIVATING,
-	WEAPON_STATE_DROPPING,
-	WEAPON_STATE_REFIRE,
-	WEAPON_STATE_RELOADING,
-};
-
 struct WeaponDef {
 	const char * name;
 	const char * short_name;
@@ -768,7 +766,7 @@ struct WeaponDef {
 	unsigned int refire_time;
 	unsigned int range;
 	float recoil;
-	bool smooth_refire;
+	FiringMode mode;
 
 	float damage;
 	float selfdamage;
@@ -783,6 +781,7 @@ struct WeaponDef {
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
-int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState *playerState, int buttons, int msecs, int timeDelta );
-trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) ); bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
+WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int buttons, int msecs, int timeDelta );
+trace_t * GS_TraceBullet( const gs_state_t * gs, trace_t * trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) );
+bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );

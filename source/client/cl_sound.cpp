@@ -15,6 +15,11 @@
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
 
+struct Sound {
+	ALuint buf;
+	bool mono;
+};
+
 struct SoundEffect {
 	struct PlaybackConfig {
 		StringHash sounds[ 8 ];
@@ -75,7 +80,7 @@ constexpr u32 MAX_SOUND_ASSETS = 4096;
 constexpr u32 MAX_SOUND_EFFECTS = 4096;
 constexpr u32 MAX_PLAYING_SOUNDS = 128;
 
-static ALuint sounds[ MAX_SOUND_ASSETS ];
+static Sound sounds[ MAX_SOUND_ASSETS ];
 static u32 num_sounds;
 static Hashtable< MAX_SOUND_ASSETS * 2 > sounds_hashtable;
 
@@ -159,7 +164,7 @@ static bool S_InitAL() {
 	return true;
 }
 
-static void LoadSound( const char * path, bool allow_stereo ) {
+static void LoadSound( const char * path ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
@@ -179,11 +184,6 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 	}
 
 	defer { free( samples ); };
-
-	if( !allow_stereo && channels != 1 ) {
-		Com_Printf( S_COLOR_RED "Couldn't load sound %s: needs to be a mono file!\n", path );
-		return;
-	}
 
 	u64 hash = Hash64( path, strlen( path ) - strlen( ".ogg" ) );
 
@@ -209,13 +209,15 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 	else {
 		restart_music = music_playing;
 		S_StopAllSounds( true );
-		alDeleteBuffers( 1, &sounds[ idx ] );
+		alDeleteBuffers( 1, &sounds[ idx ].buf );
 	}
 
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
-	alGenBuffers( 1, &sounds[ idx ] );
-	alBufferData( sounds[ idx ], format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
+	alGenBuffers( 1, &sounds[ idx ].buf );
+	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
 	ALAssert();
+
+	sounds[ idx ].mono = channels == 1;
 
 	if( restart_music ) {
 		S_StartMenuMusic();
@@ -227,8 +229,7 @@ static void LoadSounds() {
 
 	for( const char * path : AssetPaths() ) {
 		if( FileExtension( path ) == ".ogg" ) {
-			bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
-			LoadSound( path, stereo );
+			LoadSound( path );
 		}
 	}
 }
@@ -238,8 +239,7 @@ static void HotloadSounds() {
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".ogg" ) {
-			bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
-			LoadSound( path, stereo );
+			LoadSound( path );
 		}
 	}
 }
@@ -412,7 +412,10 @@ void S_Shutdown() {
 
 	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
 	alDeleteSources( 1, &music_source );
-	alDeleteBuffers( num_sounds, sounds );
+
+	for( u32 i = 0; i < num_sounds; i++ ) {
+		alDeleteBuffers( 1, &sounds[ i ].buf );
+	}
 
 	ALAssert();
 
@@ -420,11 +423,11 @@ void S_Shutdown() {
 	alcCloseDevice( al_device );
 }
 
-static bool FindSound( StringHash name, ALuint * buffer ) {
+static bool FindSound( StringHash name, Sound * sound ) {
 	u64 idx;
 	if( !initialized || !sounds_hashtable.get( name.hash, &idx ) )
 		return false;
-	*buffer = sounds[ idx ];
+	*sound = sounds[ idx ];
 	return true;
 }
 
@@ -443,12 +446,17 @@ static void StartSound( PlayingSound * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
 	int idx = random_uniform( &cls.rng, 0, config.num_random_sounds );
-	ALuint buffer;
-	if( !FindSound( config.sounds[ idx ], &buffer ) )
+	Sound sound;
+	if( !FindSound( config.sounds[ idx ], &sound ) )
 		return;
 
 	if( num_free_sound_sources == 0 ) {
-		Com_Printf( S_COLOR_YELLOW "Too many playing sounds!" );
+		Com_Printf( S_COLOR_YELLOW "Too many playing sounds!\n" );
+		return;
+	}
+
+	if( !sound.mono && ps->type != PlayingSoundType_Global ) {
+		Com_Printf( S_COLOR_YELLOW "Positioned sounds must be mono!\n" );
 		return;
 	}
 
@@ -457,7 +465,7 @@ static void StartSound( PlayingSound * ps, u8 i ) {
 	ps->sources[ i ] = source;
 	ps->started[ i ] = true;
 
-	alSourcei( source, AL_BUFFER, buffer );
+	alSourcei( source, AL_BUFFER, sound.buf );
 	alSourcef( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
 	alSourcef( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	alSourcef( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
@@ -644,7 +652,7 @@ static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
 }
 
-static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, int channel, float volume, float attenuation, PlayingSoundType type, bool immediate ) {
+static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, int channel, float volume, PlayingSoundType type, bool immediate ) {
 	if( !initialized || sfx == NULL )
 		return NULL;
 
@@ -667,29 +675,29 @@ static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, in
 	return ps;
 }
 
-void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume, float attenuation ) {
-	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, attenuation, PlayingSoundType_Position, false );
+void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume ) {
+	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Position, false );
 	if( ps == NULL )
 		return;
 	ps->origin = origin;
 }
 
-void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, float attenuation ) {
-	StartSoundEffect( sfx, ent_num, channel, volume, attenuation, PlayingSoundType_Entity, false );
+void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume ) {
+	StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity, false );
 }
 
 void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, 0, channel, volume, ATTN_NONE, PlayingSoundType_Global, false );
+	StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global, false );
 }
 
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, -1, channel, volume, ATTN_NONE, PlayingSoundType_Global, false );
+	StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Global, false );
 }
 
-static PlayingSound * StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, float attenuation, PlayingSoundType type ) {
+static PlayingSound * StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type ) {
 	// TODO: replace old immediate sound if sfx changed
 	if( entities[ ent_num ].immediate_ps == NULL ) {
-		entities[ ent_num ].immediate_ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, attenuation, type, true );
+		entities[ ent_num ].immediate_ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type, true );
 	}
 
 	if( entities[ ent_num ].immediate_ps != NULL ) {
@@ -699,12 +707,12 @@ static PlayingSound * StartImmediateSound( const SoundEffect * sfx, int ent_num,
 	return entities[ ent_num ].immediate_ps;
 }
 
-void S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, float attenuation ) {
-	StartImmediateSound( sfx, ent_num, volume, attenuation, PlayingSoundType_Entity );
+void S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume ) {
+	StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Entity );
 }
 
-void S_ImmediateLineSound( const SoundEffect * sfx, int ent_num, Vec3 start, Vec3 end, float volume, float attenuation ) {
-	PlayingSound * ps = StartImmediateSound( sfx, ent_num, volume, attenuation, PlayingSoundType_Line );
+void S_ImmediateLineSound( const SoundEffect * sfx, int ent_num, Vec3 start, Vec3 end, float volume ) {
+	PlayingSound * ps = StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Line );
 	if( ps == NULL )
 		return;
 
@@ -740,14 +748,14 @@ void S_StartMenuMusic() {
 	if( !initialized )
 		return;
 
-	ALuint buffer;
-	if( !FindSound( "sounds/music/menu_1", &buffer ) )
+	Sound sound;
+	if( !FindSound( "sounds/music/menu_1", &sound ) )
 		return;
 
 	alSourcef( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
 	alSourcei( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	alSourcei( music_source, AL_LOOPING, AL_TRUE );
-	alSourcei( music_source, AL_BUFFER, buffer );
+	alSourcei( music_source, AL_BUFFER, sound.buf );
 
 	alSourcePlay( music_source );
 

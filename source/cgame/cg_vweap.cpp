@@ -92,10 +92,10 @@ static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
 * CG_ViewWeapon_baseanimFromWeaponState
 */
 static int CG_ViewWeapon_baseanimFromWeaponState( int weapon_state ) {
-	if( weapon_state == WEAPON_STATE_ACTIVATING )
+	if( weapon_state == WeaponState_SwitchingIn )
 		return WEAPANIM_WEAPONUP;
 
-	if( weapon_state == WEAPON_STATE_DROPPING )
+	if( weapon_state == WeaponState_SwitchingOut )
 		return WEAPANIM_WEAPDOWN;
 
 	return cg_gunbob->integer ? WEAPANIM_STANDBY : WEAPANIM_NOANIM;
@@ -299,7 +299,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	// finish
 	AnglesToAxis( gunAngles, viewweapon->ent.axis );
 
-	if( cg_gun_fov->integer && !cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] ) {
+	if( cg_gun_fov->integer && cg.predictedPlayerState.pmove.zoom_time == 0 ) {
 		float gun_fov_y = WidescreenFov( bound( 20, cg_gun_fov->value, 160 ) );
 		float gun_fov_x = CalcHorizontalFov( gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
 

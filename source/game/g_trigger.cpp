@@ -178,7 +178,7 @@ static void G_JumpPadSound( edict_t *ent ) {
 	org[1] = ent->s.origin[1] + 0.5 * ( ent->r.mins[1] + ent->r.maxs[1] );
 	org[2] = ent->s.origin[2] + 0.5 * ( ent->r.mins[2] + ent->r.maxs[2] );
 
-	sound = G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start, ATTN_NORM );
+	sound = G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start );
 	if( sound && sound->r.areanum < 0 ) {
 		// HACK: jumppad sounds may get trapped inside solid or go outside level bounds and get culled
 		// so forcefully place them into legal space
@@ -333,12 +333,12 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 	if( self->spawnflags & ( 32 | 64 ) ) { // KILL, FALL
 		// play the death sound
 		if( self->sound != EMPTY_HASH ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound, ATTN_NORM );
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
 			other->pain_debounce_time = level.time + 25;
 		}
 	} else if( !( self->spawnflags & 4 ) && self->sound != EMPTY_HASH ) {
 		if( (int)( level.time * 0.001 ) & 1 ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound, ATTN_NORM );
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
 		}
 	}
 
@@ -458,7 +458,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 			VectorCopy( self->s.origin, org );
 		}
 
-		G_PositionedSound( org, CHAN_AUTO, self->sound, ATTN_NORM );
+		G_PositionedSound( org, CHAN_AUTO, self->sound );
 	}
 
 	G_TeleportPlayer( other, dest );
