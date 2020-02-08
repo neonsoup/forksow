@@ -107,8 +107,6 @@ static void SettingLabel( const char * label ) {
 
 template< size_t maxlen >
 static void CvarTextbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
@@ -116,22 +114,22 @@ static void CvarTextbox( const char * label, const char * cvar_name, const char 
 	char buf[ maxlen + 1 ];
 	Q_strncpyz( buf, cvar->string, sizeof( buf ) );
 
-	const char * unique = temp( "##{}", cvar_name );
-	ImGui::InputText( unique, buf, sizeof( buf ) );
+	ImGui::PushID( cvar_name );
+	ImGui::InputText( "", buf, sizeof( buf ) );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, buf );
 }
 
 static void CvarCheckbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	bool val = cvar->integer != 0;
-	ImGui::Checkbox( unique, &val );
+	ImGui::PushID( cvar_name );
+	ImGui::Checkbox( "", &val );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
@@ -143,9 +141,10 @@ static void CvarSliderInt( const char * label, const char * cvar_name, int lo, i
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	int val = cvar->integer;
-	ImGui::SliderInt( unique, &val, lo, hi, format );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderInt( "", &val, lo, hi, format );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, temp( "{}", val ) );
 }
@@ -157,19 +156,17 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	float val = cvar->value;
-	ImGui::SliderFloat( unique, &val, lo, hi, "%.2f" );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderFloat( "", &val, lo, hi, "%.2f" );
+	ImGui::PopID();
 
-	char buf[ 128 ];
-	snprintf( buf, sizeof( buf ), "%f", val );
+	char * buf = temp( "{}", val );
 	RemoveTrailingZeroesFloat( buf );
 	Cvar_Set( cvar_name, buf );
 }
 
 static void KeyBindButton( const char * label, const char * command ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 	ImGui::PushID( label );
 
@@ -225,16 +222,15 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 
 	SettingLabel( label );
 	ImGui::PushItemWidth( 100 );
+	ImGui::PushID( cvar_name );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, temp( "{}", def ), CVAR_ARCHIVE );
-
-	const char * unique = temp( "##{}", cvar_name );
 
 	int selected = cvar->integer;
 	if( selected >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
 		selected = def;
 
-	if( ImGui::BeginCombo( unique, TEAM_COLORS[ selected ].name ) ) {
+	if( ImGui::BeginCombo( "", TEAM_COLORS[ selected ].name ) ) {
 		ImGui::Columns( 2, cvar_name, false );
 		ImGui::SetColumnWidth( 0, 0 );
 
@@ -248,6 +244,7 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 		ImGui::EndCombo();
 		ImGui::Columns( 1 );
 	}
+	ImGui::PopID();
 	ImGui::PopItemWidth();
 
 	Cvar_Set( cvar_name, temp( "{}", selected ) );
@@ -381,11 +378,13 @@ static void SettingsVideo() {
 		int num_monitors;
 		GLFWmonitor ** monitors = glfwGetMonitors( &num_monitors );
 
-		if( ImGui::BeginCombo( "##monitor", temp( "{}", glfwGetMonitorName( monitors[ mode.monitor ] ) ) ) ) {
+		if( ImGui::BeginCombo( "##monitor", glfwGetMonitorName( monitors[ mode.monitor ] ) ) ) {
 			for( int i = 0; i < num_monitors; i++ ) {
+				ImGui::PushID( i );
 				if( ImGui::Selectable( glfwGetMonitorName( monitors[ i ] ), mode.monitor == i ) ) {
 					mode.monitor = i;
 				}
+				ImGui::PopID();
 			}
 			ImGui::EndCombo();
 		}
