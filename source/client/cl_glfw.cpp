@@ -586,7 +586,7 @@ int main( int argc, char ** argv ) {
 		Qcommon_Frame( dt );
 	}
 
-	glfwTerminate();
+	Com_Quit();
 
 	return 0;
 }
