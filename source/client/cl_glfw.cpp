@@ -299,6 +299,8 @@ static int TranslateGLFWKey( int glfw ) {
 		case GLFW_KEY_RIGHT_BRACKET: return ']';
 		case GLFW_KEY_SEMICOLON:     return ';';
 		case GLFW_KEY_APOSTROPHE:    return '\'';
+		case GLFW_KEY_WORLD_1:       return '>';
+		case GLFW_KEY_WORLD_2:       return '<';
 
 		case GLFW_KEY_KP_0:          return KP_INS;
 		case GLFW_KEY_KP_1:          return KP_END;
@@ -317,8 +319,6 @@ static int TranslateGLFWKey( int glfw ) {
 		case GLFW_KEY_KP_DIVIDE:     return KP_SLASH;
 		case GLFW_KEY_KP_MULTIPLY:   return KP_STAR;
 		case GLFW_KEY_KP_EQUAL:      return KP_EQUAL;
-
-		default: break;
 	}
 	return 0;
 }
