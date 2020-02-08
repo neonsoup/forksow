@@ -24,6 +24,7 @@ end
 
 require( "libs.cgltf" )
 require( "libs.glad" )
+require( "libs.glfw" )
 require( "libs.imgui" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
@@ -43,6 +44,7 @@ do
 			"source/win32/win_net.cpp",
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
+			"source/win32/win_sys.cpp",
 		}
 		platform_libs = { }
 	else
@@ -71,6 +73,7 @@ do
 		libs = {
 			"cgltf",
 			"glad",
+			"glfw",
 			"imgui",
 			"meshoptimizer",
 			"monocypher",
@@ -86,7 +89,6 @@ do
 			"curl",
 			"freetype",
 			"openal",
-			"sdl",
 			"zlib",
 			"zstd",
 			platform_libs
@@ -98,7 +100,6 @@ do
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 
-	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
 end
 

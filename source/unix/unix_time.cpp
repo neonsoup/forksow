@@ -23,6 +23,10 @@ s64 Sys_Milliseconds() {
 	return Sys_Microseconds() / 1000;
 }
 
+void Sys_Sleep( unsigned int millis ) {
+	usleep( millis * 1000 );
+}
+
 bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt ) {
 	time_t now = time( NULL );
 	struct tm tm;
