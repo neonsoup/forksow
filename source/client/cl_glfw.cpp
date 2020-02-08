@@ -385,7 +385,7 @@ void CreateWindow( WindowMode mode ) {
 	GLFWmonitor * monitor = mode.fullscreen ? GetMonitorByIdx( mode.monitor ) : NULL;
 	glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
 
-	window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, "Cocaine Diesel", monitor, NULL );
+	window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, monitor, NULL );
 
 	if( window == NULL ) {
 		Com_Error( ERR_FATAL, "glfwCreateWindow" );
