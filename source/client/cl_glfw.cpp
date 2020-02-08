@@ -479,8 +479,6 @@ WindowMode GetWindowMode() {
 		mode.monitor = int( uintptr_t( glfwGetMonitorUserPointer( monitor ) ) );
 	}
 
-	Com_GGPrint( "getwindowmode = {}", mode );
-
 	return mode;
 }
 
@@ -490,8 +488,6 @@ void SetWindowMode( WindowMode mode ) {
 		mode.x = primary_mode->width / 2 - mode.video_mode.width / 2;
 		mode.y = primary_mode->height / 2 - mode.video_mode.height / 2;
 	}
-
-	Com_GGPrint( "setting mode to {} {}", mode.x, mode.y );
 
 	GLFWmonitor * monitor = mode.fullscreen ? GetMonitorByIdx( mode.monitor ) : NULL;
 	glfwSetWindowMonitor( window, monitor, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
