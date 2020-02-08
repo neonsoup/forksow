@@ -431,7 +431,6 @@ static void SettingsVideo() {
 				mode.y = -1;
 			}
 
-			Com_GGPrint( "{}", mode );
 			Cvar_Set( "vid_mode", temp( "{}", mode ) );
 			reset_video_settings = true;
 		}
