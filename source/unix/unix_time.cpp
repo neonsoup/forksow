@@ -1,4 +1,5 @@
 #include <time.h>
+#include <unistd.h>
 
 #include "qcommon/types.h"
 

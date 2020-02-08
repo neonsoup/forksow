@@ -34,6 +34,7 @@ configs[ "linux" ] = {
 	lib_suffix = ".a",
 
 	toolchain = "gcc",
+	cc = "gcc",
 	cxx = "g++",
 
 	cxxflags = "-c -fdiagnostics-color",
@@ -294,13 +295,11 @@ rule rc
 
 elseif toolchain == "gcc" then
 
-local cxx = rightmost( "cxx" )
-
+printf( "cc = %s", rightmost( "cc" ) )
+printf( "cpp = %s", rightmost( "cxx" ) )
 printf( [[
-cpp = %s
-
 rule c
-    command = $cpp -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
+    command = $cc -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
     depfile = $out.d
     description = $in
     deps = gcc
@@ -318,7 +317,7 @@ rule bin
 rule lib
     command = ar rs $out $in
     description = $out
-]], cxx )
+]] )
 
 end
 

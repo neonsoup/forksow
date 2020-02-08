@@ -96,7 +96,7 @@ do
 
 		rc = "source/win32/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 

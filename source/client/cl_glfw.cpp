@@ -471,9 +471,6 @@ WindowMode GetWindowMode() {
 	if( monitor != NULL ) {
 		const GLFWvidmode * monitor_mode = glfwGetVideoMode( monitor );
 		mode.video_mode.frequency = monitor_mode->refreshRate;
-
-		int num_monitors;
-		GLFWmonitor ** monitors = glfwGetMonitors( &num_monitors );
 		mode.monitor = int( uintptr_t( glfwGetMonitorUserPointer( monitor ) ) );
 	}
 

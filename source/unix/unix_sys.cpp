@@ -3,6 +3,7 @@
 
 #include <err.h>
 #include <errno.h>
+#include <stdio.h>
 #include <unistd.h>
 
 void Sys_Init() { }
