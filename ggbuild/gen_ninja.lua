@@ -196,19 +196,19 @@ local function glob_impl( dir, rel, res, prefix, suffix, recursive )
 end
 
 local function glob( srcs )
-        local res = { }
-        for _, pattern in ipairs( flatten( srcs ) ) do
-                if pattern:find( "*", 1, true ) then
+	local res = { }
+	for _, pattern in ipairs( flatten( srcs ) ) do
+		if pattern:find( "*", 1, true ) then
 			local dir, prefix, suffix = pattern:match( "^(.-)/?([^/*]*)%*+(.*)$" )
 			local recursive = pattern:find( "**", 1, true ) ~= nil
 			assert( not recursive or prefix == "" )
 
 			glob_impl( dir, "", res, prefix, suffix, recursive )
-                else
-                        table.insert( res, pattern )
-                end
-        end
-        return res
+		else
+			table.insert( res, pattern )
+		end
+	end
+	return res
 end
 
 local function add_srcs( srcs )
@@ -269,6 +269,11 @@ printf( "ldflags = %s", ldflags )
 if toolchain == "msvc" then
 
 printf( [[
+rule c
+    command = cl /showIncludes $cxxflags $extra_cxxflags -Fo$out $in
+    description = $in
+    deps = msvc
+
 rule cpp
     command = cl /showIncludes $cxxflags $extra_cxxflags -Fo$out $in
     description = $in
@@ -294,6 +299,12 @@ local cxx = rightmost( "cxx" )
 printf( [[
 cpp = %s
 
+rule c
+    command = $cpp -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
+    depfile = $out.d
+    description = $in
+    deps = gcc
+
 rule cpp
     command = $cpp -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
     depfile = $out.d
@@ -313,7 +324,7 @@ end
 
 local function rule_for_src( src_name )
 	local ext = src_name:match( "([^%.]+)$" )
-	return ( { cc = "cpp", cpp = "cpp", m = "m" } )[ ext ]
+	return ( { c = "c", cpp = "cpp" } )[ ext ]
 end
 
 local function write_ninja_script()
