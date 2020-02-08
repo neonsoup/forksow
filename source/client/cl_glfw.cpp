@@ -25,8 +25,6 @@ void Sys_Error( const char *format, ... ) {
 
 	Sys_ShowErrorMessage( msg );
 
-	// SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, APPLICATION, msg, NULL );
-
 	abort();
 }
 
