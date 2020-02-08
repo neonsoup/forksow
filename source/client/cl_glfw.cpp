@@ -366,7 +366,8 @@ static GLFWmonitor * GetMonitorByIdx( int i ) {
 void CreateWindow( WindowMode mode ) {
 	ZoneScoped;
 
-	glfwWindowHint( GLFW_RESIZABLE, 1 );
+	glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
+	glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
 
 	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
