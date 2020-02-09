@@ -7,6 +7,7 @@
 
 #include "cgame/cg_local.h"
 
+#define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
 enum UIState {

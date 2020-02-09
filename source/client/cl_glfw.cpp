@@ -3,6 +3,7 @@
 
 #include "glad/glad.h"
 
+#define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
 #include "imgui/imgui.h"
