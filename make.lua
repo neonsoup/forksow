@@ -70,7 +70,6 @@ do
 		libs = {
 			"cgltf",
 			"glad",
-			"glfw",
 			"imgui",
 			"meshoptimizer",
 			"monocypher",
@@ -85,6 +84,7 @@ do
 			"angelscript",
 			"curl",
 			"freetype",
+			"glfw3",
 			"openal",
 			"zlib",
 			"zstd",
