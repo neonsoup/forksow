@@ -1042,7 +1042,7 @@ static void GameMenu() {
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 
-			if( ImGui::Button( "OK", ImVec2( -1, button_height ) ) || ImGui::IsKeyPressed( K_ENTER ) ) {
+			if( ImGui::Button( "OK", ImVec2( -1, button_height ) ) || ImGui::CloseKey( K_ENTER ) ) {
 				DynamicString loadout( &temp, "weapselect" );
 				for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
 					if( selected_weapons[ i ] ) {
@@ -1075,7 +1075,7 @@ static void GameMenu() {
 		Settings();
 	}
 
-	if( ( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) || should_close ) {
+	if( ImGui::CloseKey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -1103,7 +1103,7 @@ static void DemoMenu() {
 	GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
 	GameMenuButton( "Exit to desktop", "quit", &should_close );
 
-	if( ( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) || should_close ) {
+	if( ImGui::CloseKey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
