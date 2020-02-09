@@ -22,7 +22,6 @@ end
 
 require( "libs.cgltf" )
 require( "libs.glad" )
-require( "libs.glfw" )
 require( "libs.imgui" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )

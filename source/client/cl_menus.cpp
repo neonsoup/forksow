@@ -7,7 +7,7 @@
 
 #include "cgame/cg_local.h"
 
-#include "glfw/include/GLFW/glfw3.h"
+#include "glfw3/GLFW/glfw3.h"
 
 enum UIState {
 	UIState_Hidden,
