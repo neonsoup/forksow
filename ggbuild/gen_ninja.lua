@@ -34,7 +34,6 @@ configs[ "linux" ] = {
 	lib_suffix = ".a",
 
 	toolchain = "gcc",
-	cc = "gcc",
 	cxx = "g++",
 
 	cxxflags = "-c -fdiagnostics-color",
@@ -270,11 +269,6 @@ printf( "ldflags = %s", ldflags )
 if toolchain == "msvc" then
 
 printf( [[
-rule c
-    command = cl /showIncludes $cxxflags $extra_cxxflags -Fo$out $in
-    description = $in
-    deps = msvc
-
 rule cpp
     command = cl /showIncludes $cxxflags $extra_cxxflags -Fo$out $in
     description = $in
@@ -295,15 +289,8 @@ rule rc
 
 elseif toolchain == "gcc" then
 
-printf( "cc = %s", rightmost( "cc" ) )
 printf( "cpp = %s", rightmost( "cxx" ) )
 printf( [[
-rule c
-    command = $cc -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
-    depfile = $out.d
-    description = $in
-    deps = gcc
-
 rule cpp
     command = $cpp -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
     depfile = $out.d
@@ -323,7 +310,7 @@ end
 
 local function rule_for_src( src_name )
 	local ext = src_name:match( "([^%.]+)$" )
-	return ( { c = "c", cpp = "cpp" } )[ ext ]
+	return ( { cpp = "cpp" } )[ ext ]
 end
 
 local function write_ninja_script()
