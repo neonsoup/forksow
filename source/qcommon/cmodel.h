@@ -68,6 +68,8 @@ typedef struct {
 } cleaf_t;
 
 typedef struct cmodel_s {
+	u64 hash;
+
 	bool builtin;
 
 	int nummarkfaces;
@@ -92,6 +94,9 @@ typedef struct {
 } carea_t;
 
 struct CollisionModel {
+	u64 base_hash;
+	u64 world_hash;
+
 	int checkcount;
 	int floodvalid;
 
@@ -116,9 +121,7 @@ struct CollisionModel {
 	int nummarkbrushes;
 	int *map_markbrushes;
 
-	int numcmodels;
-	cmodel_t map_cmodel_empty;
-	cmodel_t *map_cmodels;          // = &map_cmodel_empty;
+	u32 num_models;
 	vec3_t world_mins, world_maxs;
 
 	int numbrushes;
@@ -169,14 +172,16 @@ struct CollisionModel {
 	int *map_face_checkcheckouts;
 };
 
-CollisionModel *CM_LoadMap( Span< const u8 > data );
+CollisionModel *CM_LoadMap( Span< const u8 > data, u64 base_hash );
 void CM_Free( CollisionModel *cms );
 
-struct cmodel_s *CM_InlineModel( CollisionModel *cms, int num ); // 1, 2, etc
+struct cmodel_s * CM_FindCModel( StringHash hash );
+struct cmodel_s * CM_TryFindCModel( StringHash hash );
+
+bool CM_IsBrushModel( StringHash hash );
 
 int CM_NumClusters( CollisionModel *cms );
 int CM_NumAreas( CollisionModel *cms );
-int CM_NumInlineModels( CollisionModel *cms );
 char *CM_EntityString( CollisionModel *cms );
 int CM_EntityStringLen( CollisionModel *cms );
 const char *CM_ShaderrefName( CollisionModel *cms, int ref );

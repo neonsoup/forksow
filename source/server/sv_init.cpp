@@ -70,8 +70,6 @@ void SV_SetServerConfigStrings( void ) {
 * Change the server to a new map, taking all connected clients along with it.
 */
 static void SV_SpawnServer( const char *mapname, bool devmap ) {
-	int i;
-
 	if( devmap ) {
 		Cvar_ForceSet( "sv_cheats", "1" );
 	}
@@ -96,6 +94,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	sv.nextSnapTime = 1000;
 
+	// TODO: maybe get rid of the .bsp
 	snprintf( sv.configstrings[CS_WORLDMODEL], sizeof( sv.configstrings[CS_WORLDMODEL] ), "maps/%s.bsp", mapname );
 
 	u8 * buf;
@@ -113,7 +112,8 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	}
 
 	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
-	svs.cms = CM_LoadMap( data );
+	u64 base_hash = Hash64( sv.configstrings[ CS_WORLDMODEL ], strlen( sv.configstrings[ CS_WORLDMODEL ] ) - strlen( ".bsp" ) );
+	svs.cms = CM_LoadMap( data, base_hash );
 
 	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%u", svs.cms->checksum );
 
@@ -171,13 +171,6 @@ void SV_InitGame( void ) {
 	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	svs.initialized = true;
-
-	if( sv_skilllevel->integer > 2 ) {
-		Cvar_ForceSet( "sv_skilllevel", "2" );
-	}
-	if( sv_skilllevel->integer < 0 ) {
-		Cvar_ForceSet( "sv_skilllevel", "0" );
-	}
 
 	// init clients
 	if( sv_maxclients->integer < 1 ) {

@@ -297,8 +297,6 @@ void SP_post_match_camera( edict_t *ent );
 //
 // g_func.c
 //
-void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, const char *stop );
-
 void SP_func_plat( edict_t *ent );
 void SP_func_rotating( edict_t *ent );
 void SP_func_button( edict_t *ent );
@@ -307,7 +305,6 @@ void SP_func_door_rotating( edict_t *ent );
 void SP_func_train( edict_t *ent );
 void SP_func_timer( edict_t *self );
 void SP_func_wall( edict_t *self );
-void SP_func_object( edict_t *self );
 void SP_func_explosive( edict_t *self );
 void SP_func_static( edict_t *ent );
 
@@ -407,9 +404,9 @@ char *G_AllocCreateNamesList( const char *path, const char *extension, const cha
 char *_G_CopyString( const char *in, const char *filename, int fileline );
 #define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
 
-void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority );
-edict_t *G_SpawnEvent( int event, int parm, const vec3_t origin );
-void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm );
+void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority );
+edict_t *G_SpawnEvent( int event, u64 parm, const vec3_t origin );
+void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm );
 
 void G_CallThink( edict_t *ent );
 void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags );
@@ -436,7 +433,6 @@ void G_GlobalSound( int channel, StringHash sound );
 void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
 #define G_ISGHOSTING( x ) ( ( x )->r.solid == SOLID_NOT )
-#define ISBRUSHMODEL( x ) ( ( x > 0 ) && ( (int)x < CM_NumInlineModels( svs.cms ) ) )
 
 void G_TeleportEffect( edict_t *ent, bool in );
 void G_RespawnEffect( edict_t *ent );
@@ -444,7 +440,7 @@ int G_SolidMaskForEnt( edict_t *ent );
 void G_CheckGround( edict_t *ent );
 void G_CategorizePosition( edict_t *ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
-void G_AddPlayerStateEvent( gclient_t *client, int event, int parm );
+void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
@@ -497,7 +493,7 @@ void GClip_BackUpCollisionFrame( void );
 int GClip_FindInRadius4D( vec3_t org, float rad, int *list, int maxcount, int timeDelta );
 void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld( void );
-void GClip_SetBrushModel( edict_t *ent, const char *name );
+void GClip_SetBrushModel( edict_t *ent, StringHash hash );
 void GClip_SetAreaPortalState( edict_t *ent, bool open );
 void GClip_LinkEntity( edict_t *ent );
 void GClip_UnlinkEntity( edict_t *ent );
@@ -553,7 +549,7 @@ edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, float dama
 void W_Fire_Electrobolt( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
 edict_t * W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
 
-void G_FireWeapon( edict_t *ent, int parm );
+void G_FireWeapon( edict_t *ent, u64 parm );
 
 //
 // g_chasecam	//newgametypes
@@ -583,7 +579,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
 void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );
-void G_PredictedEvent( int entNum, int ev, int parm );
+void G_PredictedEvent( int entNum, int ev, u64 parm );
 void G_PredictedFireWeapon( int entNum, WeaponType weapon );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
@@ -754,8 +750,7 @@ typedef struct {
 
 	int64_t timeStamp; // last time it was reset
 
-	// SyncPlayerState event
-	int events[MAX_CLIENT_EVENTS];
+	SyncEvent events[MAX_CLIENT_EVENTS];
 	unsigned int eventsCurrent;
 	unsigned int eventsHead;
 
@@ -792,8 +787,6 @@ typedef struct {
 	vec3_t position_origin;
 	vec3_t position_angles;
 	int64_t position_lastcmd;
-
-	edict_t *last_killer;
 } client_teamreset_t;
 
 struct gclient_s {

@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// qcommon.h -- definitions common between client and server, but not game.dll
-
 #pragma once
 
 #include "tracy/Tracy.hpp"
@@ -728,6 +726,10 @@ bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
 
 const char * Sys_ConsoleInput();
 void Sys_ConsoleOutput( const char * string );
+
+bool Sys_OpenInWebBrowser( const char * url );
+
+bool Sys_BeingDebugged();
 
 #ifndef _MSC_VER
 void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );

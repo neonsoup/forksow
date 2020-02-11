@@ -6,6 +6,7 @@ obj_cxxflags( ".*", "-I source -I libs" )
 msvc_obj_cxxflags( ".*", "/W4 /wd4100 /wd4146 /wd4189 /wd4201 /wd4307 /wd4324 /wd4351 /wd4127 /wd4505 /wd4530 /wd4702 /wd4706 /D_CRT_SECURE_NO_WARNINGS" )
 msvc_obj_cxxflags( ".*", "/wd4244 /wd4267" ) -- silence conversion warnings because there are tons of them
 msvc_obj_cxxflags( ".*", "/fp:fast /GR- /EHs-c-" )
+
 gcc_obj_cxxflags( ".*", "-std=c++11 -msse3 -ffast-math -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fvisibility=hidden" )
 gcc_obj_cxxflags( ".*", "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
 gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-format-truncation" )
@@ -44,6 +45,7 @@ do
 		platform_libs = { }
 	else
 		platform_srcs = {
+			"source/unix/unix_client.cpp",
 			"source/unix/unix_console.cpp",
 			"source/unix/unix_fs.cpp",
 			"source/unix/unix_net.cpp",
@@ -82,8 +84,8 @@ do
 			"angelscript",
 			"curl",
 			"freetype",
+			"glfw3",
 			"openal",
-			"sdl",
 			"zlib",
 			"zstd",
 			platform_libs
@@ -91,11 +93,10 @@ do
 
 		rc = "source/win32/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 
-	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
 end
 

@@ -82,10 +82,3 @@ qthread_t *QThread_Create( void *( *routine )( void* ), void *param ) {
 void QThread_Join( qthread_t *thread ) {
 	Sys_Thread_Join( thread );
 }
-
-/*
-* QThread_Yield
-*/
-void QThread_Yield( void ) {
-	Sys_Thread_Yield();
-}

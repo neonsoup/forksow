@@ -39,14 +39,6 @@ static inline void PF_CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, c
 	CM_TransformedBoxTrace( svs.cms, tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
 }
 
-static inline int PF_CM_NumInlineModels( void ) {
-	return CM_NumInlineModels( svs.cms );
-}
-
-static inline struct cmodel_s *PF_CM_InlineModel( int num ) {
-	return CM_InlineModel( svs.cms, num );
-}
-
 static inline void PF_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
 	CM_InlineModelBounds( svs.cms, cmodel, mins, maxs );
 }

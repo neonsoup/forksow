@@ -33,10 +33,6 @@ gs_state_t client_gs;
 
 //======================================================================
 
-static inline int CL_GameModule_CM_NumInlineModels( void ) {
-	return CM_NumInlineModels( cl.cms );
-}
-
 static inline int CL_GameModule_CM_TransformedPointContents( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles ) {
 	return CM_TransformedPointContents( cl.cms, p, cmodel, origin, angles );
 }
@@ -44,10 +40,6 @@ static inline int CL_GameModule_CM_TransformedPointContents( const vec3_t p, str
 static inline void CL_GameModule_CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 														 struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
 	CM_TransformedBoxTrace( cl.cms, tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
-}
-
-static inline struct cmodel_s *CL_GameModule_CM_InlineModel( int num ) {
-	return CM_InlineModel( cl.cms, num );
 }
 
 static inline void CL_GameModule_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
@@ -139,7 +131,7 @@ void CL_GameModule_Init( void ) {
 	import.NET_GetCurrentUserCmdNum = CL_GameModule_NET_GetCurrentUserCmdNum;
 	import.NET_GetCurrentState = CL_GameModule_NET_GetCurrentState;
 
-	import.VID_FlashWindow = VID_FlashWindow;
+	import.VID_FlashWindow = FlashWindow;
 
 	cge = GetCGameAPI( &import );
 
@@ -253,8 +245,8 @@ void CL_GameModule_AddMovement( vec3_t movement ) {
 /*
 * CL_GameModule_MouseMove
 */
-void CL_GameModule_MouseMove( int frameTime, int dx, int dy ) {
+void CL_GameModule_MouseMove( int frameTime, Vec2 d ) {
 	if( cge ) {
-		cge->MouseMove( frameTime, dx, dy );
+		cge->MouseMove( frameTime, d );
 	}
 }

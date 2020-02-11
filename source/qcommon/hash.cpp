@@ -29,6 +29,13 @@ u64 Hash64( const char * str ) {
 	return Hash64( str, strlen( str ) );
 }
 
+u64 Hash64( u64 x ) {
+	x = ( x ^ ( x >> 30 ) ) * U64( 0xbf58476d1ce4e5b9 );
+	x = ( x ^ ( x >> 27 ) ) * U64( 0x94d049bb133111eb );
+	x = x ^ ( x >> 31 );
+	return x;
+}
+
 #ifdef PUBLIC_BUILD
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );

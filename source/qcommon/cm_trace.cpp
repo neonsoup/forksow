@@ -375,7 +375,7 @@ static int CM_PointContents( CollisionModel *cms, vec3_t p, cmodel_t *cmodel ) {
 		return 0;
 	}
 
-	if( cmodel == cms->map_cmodels ) {
+	if( cmodel->hash == cms->world_hash ) {
 		cleaf_t *leaf;
 
 		leaf = &cms->map_leafs[CM_PointLeafnum( cms, p )];
@@ -440,8 +440,8 @@ int CM_TransformedPointContents( CollisionModel *cms, const vec3_t p, cmodel_t *
 		return 0;
 	}
 
-	if( !cmodel || cmodel == cms->map_cmodels ) {
-		cmodel = cms->map_cmodels;
+	if( !cmodel || cmodel->hash == cms->world_hash ) {
+		cmodel = CM_FindCModel( StringHash( cms->world_hash ) );
 		origin = vec3_origin;
 		angles = vec3_origin;
 	} else {
@@ -735,7 +735,7 @@ static void CM_TestBoxInBrush( CollisionModel *cms, traceWork_t *tw, const cbrus
 /*
 * CM_CollideBox
 */
-static void CM_CollideBox( CollisionModel *cms, traceWork_t *tw, const int *markbrushes, int nummarkbrushes, 
+static void CM_CollideBox( CollisionModel *cms, traceWork_t *tw, const int *markbrushes, int nummarkbrushes,
 	const int *markfaces, int nummarkfaces, void ( *func )( CollisionModel *cms, traceWork_t *, const cbrush_t *b ) ) {
 	int i, j;
 	const cbrush_t *brushes = tw->brushes;
@@ -801,7 +801,7 @@ static void CM_CollideBox( CollisionModel *cms, traceWork_t *tw, const int *mark
 /*
 * CM_ClipBox
 */
-static inline void CM_ClipBox( CollisionModel *cms, traceWork_t *tw, 
+static inline void CM_ClipBox( CollisionModel *cms, traceWork_t *tw,
 	const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces ) {
 	CM_CollideBox( cms, tw, markbrushes, nummarkbrushes, markfaces, nummarkfaces, CM_ClipBoxToBrush );
 }
@@ -809,7 +809,7 @@ static inline void CM_ClipBox( CollisionModel *cms, traceWork_t *tw,
 /*
 * CM_TestBox
 */
-static inline void CM_TestBox( CollisionModel *cms, traceWork_t *tw, 
+static inline void CM_TestBox( CollisionModel *cms, traceWork_t *tw,
 	const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces ) {
 	CM_CollideBox( cms, tw,  markbrushes, nummarkbrushes, markfaces, nummarkfaces, CM_TestBoxInBrush );
 }
@@ -817,7 +817,7 @@ static inline void CM_TestBox( CollisionModel *cms, traceWork_t *tw,
 /*
 * CM_RecursiveHullCheck
 */
-static void CM_RecursiveHullCheck( CollisionModel *cms, traceWork_t *tw, int num, 
+static void CM_RecursiveHullCheck( CollisionModel *cms, traceWork_t *tw, int num,
 	float p1f, float p2f, const vec3_t p1, const vec3_t p2 ) {
 	const cnode_t *node;
 	const cplane_t *plane;
@@ -929,12 +929,11 @@ loc0:
 /*
 * CM_BoxTrace
 */
-static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr, 
-	const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, 
+static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
+	const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 	cmodel_t *cmodel, const vec3_t origin, int brushmask ) {
-	bool notworld;
 
-	notworld = ( cmodel != cms->map_cmodels ? true : false );
+	bool notworld = cmodel->hash != cms->world_hash;
 
 	// fill in a default trace
 	memset( tr, 0, sizeof( *tr ) );
@@ -1081,8 +1080,8 @@ void CM_TransformedBoxTrace( CollisionModel *cms, trace_t *tr, const vec3_t star
 		return;
 	}
 
-	if( !cmodel || cmodel == cms->map_cmodels ) {
-		cmodel = cms->map_cmodels;
+	if( !cmodel || cmodel->hash == cms->world_hash ) {
+		cmodel = CM_FindCModel( StringHash( cms->world_hash ) );
 		origin = vec3_origin;
 		angles = vec3_origin;
 	} else {

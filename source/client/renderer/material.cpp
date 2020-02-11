@@ -480,6 +480,8 @@ static void ParseMaterial( Material * material, const char * name, const char **
 static void AddTexture( u64 hash, const TextureConfig & config ) {
 	ZoneScoped;
 
+	assert( num_textures < ARRAY_COUNT( textures ) );
+
 	Texture texture = NewTexture( config );
 
 	u64 idx = num_textures;
@@ -552,7 +554,7 @@ static void LoadBuiltinTextures() {
 		for( int y = 0; y < 16; y++ ) {
 			for( int x = 0; x < 16; x++ ) {
 				float d = Length( Vec2( x - 7.5f, y - 7.5f ) );
-				float a = Clamp01( Unlerp( 1.0f, d, 7.0f ) );
+				float a = Unlerp01( 1.0f, d, 7.0f );
 				image( x, y ) = 255 * ( 1.0f - a );
 			}
 		}
@@ -570,8 +572,6 @@ static void LoadBuiltinTextures() {
 static void LoadTexture( const char * path ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
-
-	assert( num_textures < ARRAY_COUNT( textures ) );
 
 	Span< const u8 > data = AssetBinary( path );
 
@@ -660,7 +660,7 @@ void InitMaterials() {
 		ZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
-			if( FileExtension( path ) == ".shader" ) {
+			if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
 				LoadMaterialFile( path );
 			}
 		}
@@ -681,7 +681,7 @@ void HotloadMaterials() {
 	}
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".shader" ) {
+		if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
 			LoadMaterialFile( path );
 		}
 	}

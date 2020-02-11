@@ -1247,14 +1247,6 @@ static void PM_AdjustBBox( void ) {
 	float crouchFrac;
 	trace_t trace;
 
-	if( pm->playerState->pmove.pm_type == PM_GIB ) {
-		pm->playerState->pmove.crouch_time = 0;
-		VectorCopy( playerbox_gib_maxs, pm->maxs );
-		VectorCopy( playerbox_gib_mins, pm->mins );
-		pm->playerState->viewheight = playerbox_gib_viewheight;
-		return;
-	}
-
 	if( pm->playerState->pmove.pm_type >= PM_FREEZE ) {
 		pm->playerState->pmove.crouch_time = 0;
 		pm->playerState->viewheight = 0;
@@ -1467,13 +1459,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			pm->contentmask = 0;
 			break;
 
-		case PM_GIB:
-			if( pmove_gs->module == GS_MODULE_GAME ) {
-				pm->playerState->pmove.pm_flags |= PMF_NO_PREDICTION;
-			}
-			pm->contentmask = MASK_DEADSOLID;
-			break;
-
 		case PM_SPECTATOR:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				pm->playerState->pmove.pm_flags &= ~PMF_NO_PREDICTION;
@@ -1678,7 +1663,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			fall_delta *= 0.5;
 		}
 
-		float frac = Clamp01( Unlerp( min_fall_velocity, fall_delta, max_fall_velocity ) );
+		float frac = Unlerp01( min_fall_velocity, fall_delta, max_fall_velocity );
 		if( frac > 0 ) {
 			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_FALL, frac * 255 );
 		}

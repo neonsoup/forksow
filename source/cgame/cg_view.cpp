@@ -290,7 +290,7 @@ void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int
 	}
 
 	// not if dead
-	if( cg_entities[cg.view.POVent].current.type == ET_CORPSE || cg_entities[cg.view.POVent].current.type == ET_GIB ) {
+	if( cg_entities[cg.view.POVent].current.type == ET_CORPSE ) {
 		return;
 	}
 
@@ -384,39 +384,6 @@ void CG_AddEntityToScene( entity_t * ent ) {
 }
 
 //============================================================================
-
-/*
-* CG_RenderFlags
-*/
-static int CG_RenderFlags( void ) {
-	int rdflags, contents;
-
-	rdflags = 0;
-
-	// set the RDF_UNDERWATER and RDF_CROSSINGWATER bitflags
-	contents = CG_PointContents( cg.view.origin );
-	if( contents & MASK_WATER ) {
-		rdflags |= RDF_UNDERWATER;
-
-		// undewater, check above
-		contents = CG_PointContents( tv( cg.view.origin[0], cg.view.origin[1], cg.view.origin[2] + 9 ) );
-		if( !( contents & MASK_WATER ) ) {
-			rdflags |= RDF_CROSSINGWATER;
-		}
-	} else {
-		// look down a bit
-		contents = CG_PointContents( tv( cg.view.origin[0], cg.view.origin[1], cg.view.origin[2] - 9 ) );
-		if( contents & MASK_WATER ) {
-			rdflags |= RDF_CROSSINGWATER;
-		}
-	}
-
-	if( GS_MatchState( &client_gs ) >= MATCH_STATE_POSTMATCH ) {
-		rdflags |= RDF_BLURRED;
-	}
-
-	return rdflags;
-}
 
 /*
 * CG_InterpolatePlayerState

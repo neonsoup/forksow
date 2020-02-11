@@ -441,7 +441,7 @@ static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const v
 	// extend the influence sphere cause the player could be moving
 	float dist = Distance( ent->s.origin, listener_origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
-	return gain > 0.05f;
+	return gain <= 0.05f;
 }
 
 /*
@@ -510,13 +510,13 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	}
 
 	// if not a sound entity but the entity is only a sound
-	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
+	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
 		snd_cull_only = true;
 	}
 
 	// PVS culling alone may not be used on pure sounds, entities with
 	// events and regular entities emitting sounds
-	if( snd_cull_only || ent->s.events[0] || ent->s.sound != EMPTY_HASH ) {
+	if( snd_cull_only || ent->s.events[0].type || ent->s.sound != EMPTY_HASH ) {
 		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg );
 	}
 

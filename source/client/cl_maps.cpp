@@ -36,15 +36,17 @@ void InitMaps() {
 
 		Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
 
-		if( !LoadBSPRenderData( &maps[ num_maps ], path, data ) )
+		u64 base_hash = Hash64( path, strlen( path ) - ext.n );
+
+		if( !LoadBSPRenderData( &maps[ num_maps ], path, base_hash, data ) )
 			continue;
 
-		maps[ num_maps ].cms = CM_LoadMap( data );
+		maps[ num_maps ].cms = CM_LoadMap( data, base_hash );
 		if( maps[ num_maps ].cms == NULL )
 			// TODO: free render data
 			continue;
 
-		maps_hashtable.add( Hash64( path, strlen( path ) - ext.n ), num_maps );
+		maps_hashtable.add( base_hash, num_maps );
 		num_maps++;
 	}
 

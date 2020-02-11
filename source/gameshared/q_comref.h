@@ -55,7 +55,6 @@ typedef enum {
 	PM_SPECTATOR,
 
 	// no acceleration or turning
-	PM_GIB,         // different bounding box
 	PM_FREEZE,
 	PM_CHASECAM     // same as freeze, but so client knows it's in chasecam
 } pmtype_t;

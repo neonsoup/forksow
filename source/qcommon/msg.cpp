@@ -503,9 +503,13 @@ char *MSG_ReadStringLine( msg_t *msg ) {
 // DELTA ENTITIES
 //==================================================
 
+static void Delta( DeltaBuffer * buf, SyncEvent & event, const SyncEvent & baseline ) {
+	Delta( buf, event.parm, baseline.parm );
+	Delta( buf, event.type, baseline.type );
+}
+
 static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntityState & baseline ) {
-	Delta( buf, ent.events[ 0 ], baseline.events[ 0 ] );
-	Delta( buf, ent.eventParms[ 0 ], baseline.eventParms[ 0 ] );
+	Delta( buf, ent.events, baseline.events );
 
 	Delta( buf, ent.origin, baseline.origin );
 	DeltaAngle( buf, ent.angles, baseline.angles );
@@ -523,8 +527,6 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.model2, baseline.model2 );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
-	Delta( buf, ent.events[ 1 ], baseline.events[ 1 ] );
-	Delta( buf, ent.eventParms[ 1 ], baseline.eventParms[ 1 ] );
 	Delta( buf, ent.weapon, baseline.weapon );
 	Delta( buf, ent.damage, baseline.damage );
 	Delta( buf, ent.radius, baseline.radius );
@@ -772,8 +774,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, cons
 static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayerState & baseline ) {
 	Delta( buf, player.pmove, baseline.pmove );
 
-	Delta( buf, player.event, baseline.event );
-	Delta( buf, player.eventParm, baseline.eventParm );
+	Delta( buf, player.events, baseline.events );
 
 	DeltaAngle( buf, player.viewangles, baseline.viewangles );
 
@@ -810,7 +811,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.progress_type, baseline.progress_type );
 	Delta( buf, player.progress, baseline.progress );
 
-	Delta( buf, player.last_killer, baseline.last_killer );
 	Delta( buf, player.pointed_player, baseline.pointed_player );
 	Delta( buf, player.pointed_health, baseline.pointed_health );
 }

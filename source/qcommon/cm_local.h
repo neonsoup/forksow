@@ -29,6 +29,8 @@ extern struct mempool_s * cmap_mempool;
 // and to avoid various numeric issues
 #define SURFACE_CLIP_EPSILON    ( 0.125 )
 
+struct cmodel_s * CM_NewCModel( u64 hash );
+
 void    CM_InitBoxHull( CollisionModel *cms );
 void    CM_InitOctagonHull( CollisionModel *cms );
 

@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "game/g_local.h"
 
-void G_AssignMoverSounds( edict_t *ent, StringHash default_start, StringHash default_move, StringHash default_stop ) {
+static void G_AssignMoverSounds( edict_t *ent, StringHash default_start, StringHash default_move, StringHash default_stop ) {
 	ent->moveinfo.sound_start = st.noise_start != EMPTY_HASH ? st.noise_start : default_start;
 	ent->moveinfo.sound_middle = st.noise != EMPTY_HASH ? st.noise : default_move;
 	ent->moveinfo.sound_end = st.noise_stop != EMPTY_HASH ? st.noise_stop : default_stop;
@@ -228,7 +228,7 @@ static void plat_go_down( edict_t *ent );
 static void plat_hit_top( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
 		if( ent->moveinfo.sound_end != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end, true );
+			G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end.hash, true );
 		}
 		ent->s.sound = EMPTY_HASH;
 	}
@@ -241,7 +241,7 @@ static void plat_hit_top( edict_t *ent ) {
 static void plat_hit_bottom( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
 		if( ent->moveinfo.sound_end != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end, true );
+			G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end.hash, true );
 		}
 		ent->s.sound = EMPTY_HASH;
 	}
@@ -251,7 +251,7 @@ static void plat_hit_bottom( edict_t *ent ) {
 void plat_go_down( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
 		if( ent->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start, true );
+			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
 		}
 		ent->s.sound = ent->moveinfo.sound_middle;
 	}
@@ -263,7 +263,7 @@ void plat_go_down( edict_t *ent ) {
 static void plat_go_up( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
 		if( ent->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start, true );
+			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
 		}
 		ent->s.sound = ent->moveinfo.sound_middle;
 	}
@@ -452,8 +452,8 @@ static void door_go_down( edict_t *self );
 
 static void door_hit_top( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_end ) {
-			G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end, true );
+		if( self->moveinfo.sound_end != EMPTY_HASH ) {
+			G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end.hash, true );
 		}
 		self->s.sound = EMPTY_HASH;
 	}
@@ -469,8 +469,8 @@ static void door_hit_top( edict_t *self ) {
 
 static void door_hit_bottom( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_end ) {
-			G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end, true );
+		if( self->moveinfo.sound_end != EMPTY_HASH ) {
+			G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end.hash, true );
 		}
 		self->s.sound = EMPTY_HASH;
 	}
@@ -480,8 +480,8 @@ static void door_hit_bottom( edict_t *self ) {
 
 void door_go_down( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start ) {
-			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start, true );
+		if( self->moveinfo.sound_start != EMPTY_HASH ) {
+			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
 		}
 		self->s.sound = self->moveinfo.sound_middle;
 	}
@@ -512,8 +512,8 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 	}
 
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start ) {
-			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start, true );
+		if( self->moveinfo.sound_start != EMPTY_HASH ) {
+			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
 		}
 		self->s.sound = self->moveinfo.sound_middle;
 	}
@@ -1055,7 +1055,7 @@ static void button_fire( edict_t *self ) {
 
 	self->moveinfo.state = STATE_UP;
 	if( self->moveinfo.sound_start != EMPTY_HASH && !( self->flags & FL_TEAMSLAVE ) ) {
-		G_AddEvent( self, EV_BUTTON_FIRE, self->moveinfo.sound_start, true );
+		G_AddEvent( self, EV_BUTTON_FIRE, self->moveinfo.sound_start.hash, true );
 	}
 	Move_Calc( self, self->moveinfo.end_origin, button_wait );
 }
@@ -1190,7 +1190,7 @@ static void train_wait( edict_t *self ) {
 
 		if( !( self->flags & FL_TEAMSLAVE ) ) {
 			if( self->moveinfo.sound_end != EMPTY_HASH ) {
-				G_AddEvent( self, EV_TRAIN_STOP, self->moveinfo.sound_end, true );
+				G_AddEvent( self, EV_TRAIN_STOP, self->moveinfo.sound_end.hash, true );
 			}
 			self->s.sound = EMPTY_HASH;
 		}
@@ -1245,7 +1245,7 @@ again:
 
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
 		if( self->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( self, EV_TRAIN_START, self->moveinfo.sound_start, true );
+			G_AddEvent( self, EV_TRAIN_START, self->moveinfo.sound_start.hash, true );
 		}
 		self->s.sound = self->moveinfo.sound_middle;
 	}
@@ -1339,7 +1339,7 @@ void SP_func_train( edict_t *self ) {
 		}
 	}
 
-	G_AssignMoverSounds( self, NULL, NULL, NULL );
+	G_AssignMoverSounds( self, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !self->speed ) {
 		self->speed = 100;

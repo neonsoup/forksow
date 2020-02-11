@@ -128,7 +128,6 @@ static const asEnumVal_t asEntityTypeEnumVals[] =
 	ASLIB_ENUM_VAL( ET_PLAYER ),
 	ASLIB_ENUM_VAL( ET_CORPSE ),
 	ASLIB_ENUM_VAL( ET_PUSH_TRIGGER ),
-	ASLIB_ENUM_VAL( ET_GIB ),
 	ASLIB_ENUM_VAL( ET_ROCKET ),
 	ASLIB_ENUM_VAL( ET_GRENADE ),
 	ASLIB_ENUM_VAL( ET_PLASMA ),
@@ -181,6 +180,7 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL( Weapon_Plasma ),
 	ASLIB_ENUM_VAL( Weapon_Laser ),
 	ASLIB_ENUM_VAL( Weapon_Railgun ),
+	ASLIB_ENUM_VAL( Weapon_Sniper ),
 
 	ASLIB_ENUM_VAL( Weapon_Count ),
 
@@ -222,6 +222,7 @@ static const asEnumVal_t asContentsEnumVals[] =
 	ASLIB_ENUM_VAL( CONTENTS_LAVA ),
 	ASLIB_ENUM_VAL( CONTENTS_SLIME ),
 	ASLIB_ENUM_VAL( CONTENTS_WATER ),
+	ASLIB_ENUM_VAL( CONTENTS_WALLBANGABLE ),
 	ASLIB_ENUM_VAL( CONTENTS_AREAPORTAL ),
 	ASLIB_ENUM_VAL( CONTENTS_PLAYERCLIP ),
 	ASLIB_ENUM_VAL( CONTENTS_MONSTERCLIP ),
@@ -243,10 +244,10 @@ static const asEnumVal_t asContentsEnumVals[] =
 	ASLIB_ENUM_VAL( MASK_SOLID ),
 	ASLIB_ENUM_VAL( MASK_PLAYERSOLID ),
 	ASLIB_ENUM_VAL( MASK_DEADSOLID ),
-	ASLIB_ENUM_VAL( MASK_MONSTERSOLID ),
 	ASLIB_ENUM_VAL( MASK_WATER ),
 	ASLIB_ENUM_VAL( MASK_OPAQUE ),
 	ASLIB_ENUM_VAL( MASK_SHOT ),
+	ASLIB_ENUM_VAL( MASK_WALLBANG ),
 	ASLIB_ENUM_VAL( MASK_ALPHAPLAYERSOLID ),
 	ASLIB_ENUM_VAL( MASK_BETAPLAYERSOLID ),
 
@@ -1149,13 +1150,8 @@ static void objectGameEntity_GhostClient( edict_t *self ) {
 	}
 }
 
-static void objectGameEntity_SetupModel( asstring_t *modelstr, edict_t *self ) {
-	if( !modelstr ) {
-		self->s.modelindex = 0;
-		return;
-	}
-
-	GClip_SetBrushModel( self, modelstr->buffer );
+static void objectGameEntity_SetupModel( u64 hash, edict_t *self ) {
+	GClip_SetBrushModel( self, StringHash( hash ) );
 }
 
 static void objectGameEntity_UseTargets( edict_t *activator, edict_t *self ) {
@@ -1298,7 +1294,7 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, spawnqueueAdd, ( ) ), asFUNCTION( G_SpawnQueue_AddClient ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, teleportEffect, ( bool ) ), asFUNCTION( objectGameEntity_TeleportEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, respawnEffect, ( ) ), asFUNCTION( G_RespawnEffect ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setupModel, ( const String &in ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setupModel, ( uint64 hash ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargets, ( ) const ), asFUNCTION( objectGameEntity_findTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargeting, ( ) const ), asFUNCTION( objectGameEntity_findTargeting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },

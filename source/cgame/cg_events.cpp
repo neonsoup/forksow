@@ -112,6 +112,32 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 	}
 }
 
+static void WallbangImpact( const trace_t * trace, int num_particles ) {
+	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
+		return;
+
+	ParticleEmitter emitter = { };
+	emitter.position = FromQF3( trace->endpos );
+
+	emitter.use_cone_direction = true;
+	emitter.direction_cone.normal = FromQF3( trace->plane.normal );
+	emitter.direction_cone.theta = 90.0f;
+
+	emitter.start_speed = 128.0f;
+	emitter.end_speed = 128.0f;
+
+	emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
+
+	emitter.start_size = 2.0f;
+	emitter.end_size = 0.0f;
+
+	emitter.lifetime = 0.5f;
+
+	emitter.n = num_particles;
+
+	EmitParticles( &cgs.bullet_sparks, emitter );
+}
+
 static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 	if( !trace || trace->ent < 0 ) {
 		return;
@@ -203,13 +229,13 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		cg_entPModels[cent->current.number].flash_time = cl.serverTime + cgs.weaponInfos[ Weapon_Laser ]->flashTime;
 	}
 
-	S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, 1.0f );
+	cent->sound = S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, 1.0f, cent->sound );
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateEntitySound( cgs.media.sfxLasergunBeam, cent->current.number, 1.0f );
+		cent->lg_beam_sound = S_ImmediateEntitySound( cgs.media.sfxLasergunBeam, cent->current.number, 1.0f, cent->lg_beam_sound );
 	}
 	else {
-		S_ImmediateLineSound( cgs.media.sfxLasergunBeam, cent->current.number, start, end, 1.0f );
+		cent->lg_beam_sound = S_ImmediateLineSound( cgs.media.sfxLasergunBeam, start, end, 1.0f, cent->lg_beam_sound );
 	}
 
 	laserOwner = NULL;
@@ -286,6 +312,7 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 			break;
 
 		case Weapon_Railgun:
+		case Weapon_Sniper:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_AIMWEAPON, 0, EVENT_CHANNEL );
 			break;
 	}
@@ -356,28 +383,19 @@ static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponTy
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
-	trace_t trace;
-	trace_t * water_trace = GS_TraceBullet( &client_gs, &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
-	if( water_trace ) {
-		if( !VectorCompare( water_trace->endpos, origin ) ) {
-			CG_LeadWaterSplash( water_trace );
-		}
-	}
+	trace_t trace, wallbang;
+	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, 0, 0, range, owner, 0 );
 
 	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-		if( !water_trace ) {
-			if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER ) ) {
-				// flesh impact sound
-			}
-			else {
-				BulletImpact( &trace, color, 24 );
-				S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, 1.0f );
-			}
+		if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER ) ) {
+			// flesh impact sound
 		}
-	}
+		else {
+			BulletImpact( &trace, color, 24 );
+			S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, 1.0f );
+		}
 
-	if( water_trace ) {
-		CG_LeadBubbleTrail( &trace, water_trace->endpos );
+		WallbangImpact( &wallbang, 12 );
 	}
 
 	orientation_t projection;
@@ -408,24 +426,16 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int t
 		float r = cosf( fi ) * spread * sqrtf( fi );
 		float u = sinf( fi ) * spread * sqrtf( fi );
 
-		trace_t trace;
-		trace_t * water_trace = GS_TraceBullet( &client_gs, &trace, start, dir, right, up, r, u, range, owner, 0 );
-		if( water_trace ) {
-			trace_t *tr = water_trace;
-			if( !VectorCompare( tr->endpos, start ) ) {
-				CG_LeadWaterSplash( tr );
-			}
-		}
+		trace_t trace, wallbang;
+		GS_TraceBullet( &client_gs, &trace, &wallbang, start, dir, right, up, r, u, range, owner, 0 );
 
 		if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
 			BulletImpact( &trace, color, 4 );
 		}
 
-		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		WallbangImpact( &wallbang, 2 );
 
-		if( water_trace ) {
-			CG_LeadBubbleTrail( &trace, water_trace->endpos );
-		}
+		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
 }
 
@@ -556,7 +566,7 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 /*
 * CG_Event_Fall
 */
-void CG_Event_Fall( const SyncEntityState * state, int parm ) {
+void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 	if( ISVIEWERENTITY( state->number ) ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
@@ -580,8 +590,11 @@ void CG_Event_Fall( const SyncEntityState * state, int parm ) {
 /*
 * CG_Event_Pain
 */
-static void CG_Event_Pain( SyncEntityState *state, int parm ) {
+static void CG_Event_Pain( SyncEntityState *state, u64 parm ) {
 	constexpr PlayerSound sounds[] = { PlayerSound_Pain25, PlayerSound_Pain50, PlayerSound_Pain75, PlayerSound_Pain100 };
+	if( parm >= ARRAY_COUNT( sounds ) )
+		return;
+
 	CG_PlayerSound( state->number, CHAN_AUTO, sounds[ parm ] );
 	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
 	CG_PModel_AddAnimation( state->number, 0, random_select( &cls.rng, animations ), 0, EVENT_CHANNEL );
@@ -590,13 +603,14 @@ static void CG_Event_Pain( SyncEntityState *state, int parm ) {
 /*
 * CG_Event_Die
 */
-static void CG_Event_Die( int entNum, int parm ) {
+static void CG_Event_Die( int entNum, u64 parm ) {
 	constexpr struct { int dead, dying; } animations[] = {
 		{ BOTH_DEAD1, BOTH_DEATH1 },
 		{ BOTH_DEAD2, BOTH_DEATH2 },
 		{ BOTH_DEAD3, BOTH_DEATH3 },
 	};
-	parm %= ARRAY_COUNT( animations );
+	if( parm >= ARRAY_COUNT( animations ) )
+		return;
 
 	CG_PlayerSound( entNum, CHAN_AUTO, PlayerSound_Death );
 	CG_PModel_AddAnimation( entNum, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );
@@ -606,24 +620,13 @@ static void CG_Event_Die( int entNum, int parm ) {
 /*
 * CG_Event_Dash
 */
-void CG_Event_Dash( SyncEntityState *state, int parm ) {
-	switch( parm ) {
-		case 0: // dash front
-			CG_PModel_AddAnimation( state->number, LEGS_DASH, 0, 0, EVENT_CHANNEL );
-			break;
-		case 1: // dash left
-			CG_PModel_AddAnimation( state->number, LEGS_DASH_LEFT, 0, 0, EVENT_CHANNEL );
-			break;
-		case 2: // dash right
-			CG_PModel_AddAnimation( state->number, LEGS_DASH_RIGHT, 0, 0, EVENT_CHANNEL );
-			break;
-		case 3: // dash back
-			CG_PModel_AddAnimation( state->number, LEGS_DASH_BACK, 0, 0, EVENT_CHANNEL );
-			break;
-	}
+void CG_Event_Dash( SyncEntityState *state, u64 parm ) {
+	constexpr int animations[] = { LEGS_DASH, LEGS_DASH_LEFT, LEGS_DASH_RIGHT, LEGS_DASH_BACK };
+	if( parm >= ARRAY_COUNT( animations ) )
+		return;
 
+	CG_PModel_AddAnimation( state->number, animations[ parm ], 0, 0, EVENT_CHANNEL );
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Dash );
-
 	CG_Dash( state ); // Dash smoke effect
 
 	// since most dash animations jump with right leg, reset the jump to start with left leg after a dash
@@ -633,7 +636,7 @@ void CG_Event_Dash( SyncEntityState *state, int parm ) {
 /*
 * CG_Event_WallJump
 */
-void CG_Event_WallJump( SyncEntityState *state, int parm, int ev ) {
+void CG_Event_WallJump( SyncEntityState *state, u64 parm, int ev ) {
 	vec3_t normal, forward, right;
 
 	ByteToDir( parm, normal );
@@ -668,14 +671,14 @@ static void CG_PlayJumpSound( const SyncEntityState * state ) {
 /*
 * CG_Event_DoubleJump
 */
-void CG_Event_DoubleJump( SyncEntityState *state, int parm ) {
+static void CG_Event_DoubleJump( SyncEntityState * state ) {
 	CG_PlayJumpSound( state );
 }
 
 /*
 * CG_Event_Jump
 */
-void CG_Event_Jump( SyncEntityState *state, int parm ) {
+static void CG_Event_Jump( SyncEntityState * state ) {
 	CG_PlayJumpSound( state );
 
 	centity_t *cent = &cg_entities[state->number];
@@ -711,7 +714,7 @@ void CG_Event_Jump( SyncEntityState *state, int parm ) {
 /*
 * CG_EntityEvent
 */
-void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
+void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 	vec3_t dir;
 	bool viewer = ISVIEWERENTITY( ent->number );
 	int count = 0;
@@ -811,7 +814,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, num );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle ) {
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_Sniper ) {
 				CG_Event_FireBullet( origin, dir, weapon, num, ent->team );
 			}
 		} break;
@@ -834,11 +837,11 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			break;
 
 		case EV_DOUBLEJUMP:
-			CG_Event_DoubleJump( ent, parm );
+			CG_Event_DoubleJump( ent );
 			break;
 
 		case EV_JUMP:
-			CG_Event_Jump( ent, parm );
+			CG_Event_Jump( ent );
 			break;
 
 		case EV_JUMP_PAD:
@@ -991,7 +994,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 		{
 			vec3_t so;
 			CG_GetEntitySpatilization( ent->number, so, NULL );
-			S_StartFixedSound( cgs.soundPrecache[parm], FromQF3( so ), CHAN_AUTO, 1.0f );
+			S_StartFixedSound( FindSoundEffect( StringHash( parm ) ), FromQF3( so ), CHAN_AUTO, 1.0f );
 		}
 		break;
 
@@ -1029,8 +1032,8 @@ static void CG_FireEntityEvents( bool early ) {
 		}
 
 		for( j = 0; j < 2; j++ ) {
-			if( early == ISEARLYEVENT( state->events[j] ) ) {
-				CG_EntityEvent( state, state->events[j], state->eventParms[j], false );
+			if( early == ISEARLYEVENT( state->events[j].type ) ) {
+				CG_EntityEvent( state, state->events[j].type, state->events[j].parm, false );
 			}
 		}
 	}
@@ -1041,19 +1044,16 @@ static void CG_FireEntityEvents( bool early ) {
 * This events are only received by this client, and only affect it.
 */
 static void CG_FirePlayerStateEvents( void ) {
-	unsigned int event, parm, count;
 	vec3_t dir;
 
 	if( cg.view.POVent != (int)cg.frame.playerState.POVnum ) {
 		return;
 	}
 
-	for( count = 0; count < 2; count++ ) {
-		// first byte is event number, second is parm
-		event = cg.frame.playerState.event[count] & 127;
-		parm = cg.frame.playerState.eventParm[count] & 0xFF;
+	for( int count = 0; count < 2; count++ ) {
+		u64 parm = cg.frame.playerState.events[ count ].parm;
 
-		switch( event ) {
+		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
 				if( parm > 6 ) {
 					break;
@@ -1090,17 +1090,15 @@ static void CG_FirePlayerStateEvents( void ) {
 				break;
 
 			case PSEV_INDEXEDSOUND:
-				if( cgs.soundPrecache[parm] ) {
-					S_StartGlobalSound( cgs.soundPrecache[parm], CHAN_AUTO, 1.0f );
-				}
+				S_StartGlobalSound( FindSoundEffect( StringHash( parm ) ), CHAN_AUTO, 1.0f );
 				break;
 
 			case PSEV_ANNOUNCER:
-				CG_AddAnnouncerEvent( cgs.soundPrecache[parm], false );
+				CG_AddAnnouncerEvent( FindSoundEffect( StringHash( parm ) ), false );
 				break;
 
 			case PSEV_ANNOUNCER_QUEUED:
-				CG_AddAnnouncerEvent( cgs.soundPrecache[parm], true );
+				CG_AddAnnouncerEvent( FindSoundEffect( StringHash( parm ) ), true );
 				break;
 
 			default:

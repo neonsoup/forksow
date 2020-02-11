@@ -81,6 +81,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Plasma,
 	Weapon_Laser,
 	Weapon_Railgun,
+	Weapon_Sniper,
 
 	Weapon_Count
 };
@@ -162,6 +163,11 @@ struct SyncGameState {
 	SyncBombGameState bomb;
 };
 
+struct SyncEvent {
+	u64 parm;
+	s8 type;
+};
+
 struct SyncEntityState {
 	int number;                         // edict index
 
@@ -190,8 +196,7 @@ struct SyncEntityState {
 	// impulse events -- muzzle flashes, footsteps, etc
 	// events only go out for a single frame, they
 	// are automatically cleared each frame
-	int events[2];
-	int eventParms[2];
+	SyncEvent events[ 2 ];
 
 	int counterNum;                 // ET_GENERIC
 	int damage;                     // EV_BLOOD
@@ -260,7 +265,7 @@ struct SyncPlayerState {
 
 	vec3_t viewangles;          // for fixed views
 
-	int event[2], eventParm[2];
+	SyncEvent events[ 2 ];
 	unsigned int POVnum;        // entity number of the player in POV
 	unsigned int playerNum;     // client number
 	float viewheight;
@@ -303,7 +308,6 @@ struct SyncPlayerState {
 	u8 progress_type; // enum BombProgress
 	u8 progress;
 
-	int last_killer;
 	int pointed_player;
 	int pointed_health;
 };
@@ -349,7 +353,7 @@ typedef struct {
 	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );
-	void ( *PredictedEvent )( int entNum, int ev, int parm );
+	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
 	const char *( *GetConfigString )( int index );
@@ -549,6 +553,7 @@ enum MeansOfDeath {
 	MOD_PLASMA,
 	MOD_ELECTROBOLT,
 	MOD_LASERGUN,
+	MOD_SNIPER,
 
 	MOD_SLIME,
 	MOD_LAVA,
@@ -712,7 +717,6 @@ enum {
 	ET_CORPSE,
 	ET_PUSH_TRIGGER,
 
-	ET_GIB,         // leave a trail
 	ET_ROCKET,      // redlight + trail
 	ET_GRENADE,
 	ET_PLASMA,
@@ -782,6 +786,6 @@ struct WeaponDef {
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int buttons, int msecs, int timeDelta );
-trace_t * GS_TraceBullet( const gs_state_t * gs, trace_t * trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) );
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );

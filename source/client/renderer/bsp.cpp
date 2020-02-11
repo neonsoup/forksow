@@ -447,7 +447,7 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	model->mesh = NewMesh( mesh_config );
 }
 
-bool LoadBSPRenderData( Map * map, const char * path, Span< const u8 > data ) {
+bool LoadBSPRenderData( Map * map, const char * path, u64 base_hash, Span< const u8 > data ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
@@ -478,8 +478,6 @@ bool LoadBSPRenderData( Map * map, const char * path, Span< const u8 > data ) {
 		}
 	}
 
-	Span< const char > ext = FileExtension( path );
-	u64 base_hash = Hash64( path, strlen( path ) - ext.n );
 	for( size_t i = 0; i < bsp.models.n; i++ ) {
 		LoadBSPModel( vertices, bsp, base_hash, i );
 	}

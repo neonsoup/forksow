@@ -131,7 +131,7 @@ static void G_Fire_Bolt( vec3_t origin, vec3_t angles, edict_t *owner, int timeD
 /*
 * G_FireWeapon
 */
-void G_FireWeapon( edict_t *ent, int parm ) {
+void G_FireWeapon( edict_t *ent, u64 parm ) {
 	vec3_t origin, angles;
 	vec3_t viewoffset = { 0, 0, 0 };
 	int timeDelta = 0;
@@ -189,6 +189,10 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 
 		case Weapon_Laser:
 			projectile = G_Fire_Lasergun( origin, angles, ent, timeDelta );
+			break;
+
+		case Weapon_Sniper:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MOD_SNIPER );
 			break;
 
 		case Weapon_Railgun:

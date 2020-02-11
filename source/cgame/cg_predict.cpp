@@ -32,7 +32,7 @@ static bool ucmdReady = false;
 /*
 * CG_PredictedEvent - shared code can fire events during prediction
 */
-void CG_PredictedEvent( int entNum, int ev, int parm ) {
+void CG_PredictedEvent( int entNum, int ev, u64 parm ) {
 	if( ev >= PREDICTABLE_EVENTS_MAX ) {
 		return;
 	}
@@ -221,7 +221,8 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 		if( ent->number == ignore ) {
 			continue;
 		}
-		if( !( contentmask & CONTENTS_CORPSE ) && ( ( ent->type == ET_CORPSE ) || ( ent->type == ET_GIB ) ) ) {
+
+		if( !( contentmask & CONTENTS_CORPSE ) && ent->type == ET_CORPSE ) {
 			continue;
 		}
 
@@ -235,7 +236,7 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 		}
 
 		if( ent->solid == SOLID_BMODEL ) { // special value for bmodel
-			cmodel = CM_InlineModel( cl.cms, ent->modelindex );
+			cmodel = CM_FindCModel( ent->model );
 			if( !cmodel ) {
 				continue;
 			}
@@ -313,7 +314,7 @@ int CG_PointContents( const vec3_t point ) {
 			continue;
 		}
 
-		cmodel = CM_InlineModel( cl.cms, ent->modelindex );
+		cmodel = CM_FindCModel( ent->model );
 		if( cmodel ) {
 			contents |= CM_TransformedPointContents( cl.cms, (float *)point, cmodel, ent->origin, ent->angles );
 		}

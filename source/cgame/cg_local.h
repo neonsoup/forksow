@@ -81,6 +81,7 @@ typedef struct {
 	vec3_t microSmoothOrigin2;
 
 	// effects
+	ImmediateSoundHandle sound;
 	vec3_t trailOrigin;         // for particle trails
 
 	// local effects from events timers
@@ -91,6 +92,7 @@ typedef struct {
 	vec3_t laserPoint;
 	vec3_t laserOriginOld;
 	vec3_t laserPointOld;
+	ImmediateSoundHandle lg_beam_sound;
 
 	bool linearProjectileCanDraw;
 	vec3_t linearProjectileViewerSource;
@@ -391,7 +393,6 @@ extern cg_state_t cg;
 extern mempool_t *cg_mempool;
 
 #define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
-#define ISBRUSHMODEL( x ) ( ( x > 0 ) && ( (int)x < CM_NumInlineModels( cl.cms ) ) )
 
 #define ISREALSPECTATOR()       ( cg.frame.playerState.real_team == TEAM_SPECTATOR )
 
@@ -444,7 +445,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 //
 extern cvar_t *cg_showMiss;
 
-void CG_PredictedEvent( int entNum, int ev, int parm );
+void CG_PredictedEvent( int entNum, int ev, u64 parm );
 void CG_PredictedFireWeapon( int entNum, WeaponType weapon );
 void CG_PredictMovement( void );
 void CG_CheckPredictionError( void );
@@ -670,7 +671,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon );
 // cg_events.c
 //
 void CG_FireEvents( bool early );
-void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted );
+void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted );
 void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
@@ -695,7 +696,7 @@ void CG_DrawChat();
 void CG_InitInput( void );
 void CG_ShutdownInput( void );
 void CG_ClearInputState( void );
-void CG_MouseMove( int frameTime, int mx, int my );
+void CG_MouseMove( int frameTime, Vec2 m );
 float CG_GetSensitivityScale( float sens, float zoomSens );
 unsigned int CG_GetButtonBits( void );
 void CG_AddViewAngles( vec3_t viewAngles );

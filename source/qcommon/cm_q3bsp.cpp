@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/hash.h"
+#include "qcommon/string.h"
 #include "qcommon/cm_local.h"
 #include "qcommon/patch.h"
 
@@ -504,49 +505,48 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 * CMod_LoadSubmodels
 */
 static void CMod_LoadSubmodels( CollisionModel *cms, lump_t *l ) {
-	int i, j;
-	int count;
-	dmodel_t *in;
-	cmodel_t *out;
-
-	in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
+	const dmodel_t * in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Com_Error( ERR_DROP, "CMod_LoadSubmodels: funny lump size" );
 	}
-	count = l->filelen / sizeof( *in );
+	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
 		Com_Error( ERR_DROP, "Map with no models" );
 	}
 
-	out = cms->map_cmodels = ( cmodel_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
-	cms->numcmodels = count;
+	cms->num_models = count;
 
-	for( i = 0; i < count; i++, in++, out++ ) {
-		out->faces = cms->map_faces;
-		out->nummarkfaces = LittleLong( in->numfaces );
-		out->markfaces = ( int * ) Mem_Alloc( cmap_mempool, out->nummarkfaces * sizeof( *out->markfaces ) );
+	for( int i = 0; i < count; i++, in++ ) {
+		String< 16 > suffix( "*{}", i );
+		u64 hash = Hash64( suffix.c_str(), suffix.len(), cms->base_hash );
 
-		out->brushes = cms->map_brushes;
-		out->nummarkbrushes = LittleLong( in->numbrushes );
-		out->markbrushes = ( int * ) Mem_Alloc( cmap_mempool, out->nummarkbrushes * sizeof( *out->markbrushes ) );
+		cmodel_t * model = CM_NewCModel( hash );
 
-		if( out->nummarkfaces ) {
+		model->faces = cms->map_faces;
+		model->nummarkfaces = LittleLong( in->numfaces );
+		model->markfaces = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkfaces * sizeof( *model->markfaces ) );
+
+		model->brushes = cms->map_brushes;
+		model->nummarkbrushes = LittleLong( in->numbrushes );
+		model->markbrushes = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkbrushes * sizeof( *model->markbrushes ) );
+
+		if( model->nummarkfaces ) {
 			int firstface = LittleLong( in->firstface );
-			for( j = 0; j < out->nummarkfaces; j++ )
-				out->markfaces[j] = firstface + j;
+			for( int j = 0; j < model->nummarkfaces; j++ )
+				model->markfaces[j] = firstface + j;
 		}
 
-		if( out->nummarkbrushes ) {
+		if( model->nummarkbrushes ) {
 			int firstbrush = LittleLong( in->firstbrush );
-			for( j = 0; j < out->nummarkbrushes; j++ ) {
-				out->markbrushes[j] = firstbrush + j;
+			for( int j = 0; j < model->nummarkbrushes; j++ ) {
+				model->markbrushes[j] = firstbrush + j;
 			}
 		}
 
-		for( j = 0; j < 3; j++ ) {
+		for( int j = 0; j < 3; j++ ) {
 			// spread the mins / maxs by a pixel
-			out->mins[j] = LittleFloat( in->mins[j] ) - 1;
-			out->maxs[j] = LittleFloat( in->maxs[j] ) + 1;
+			model->mins[j] = LittleFloat( in->mins[j] ) - 1;
+			model->maxs[j] = LittleFloat( in->maxs[j] ) + 1;
 		}
 	}
 }

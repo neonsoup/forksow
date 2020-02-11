@@ -45,6 +45,8 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			if( GAME_IMPORT.is_dedicated_server ) {
 				Com_Printf( "%s %s\n", self->r.client->netname, message );
 			}
+
+			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 		}
 
 		G_Obituary( self, attacker, mod );
@@ -53,6 +55,8 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		if( GAME_IMPORT.is_dedicated_server ) {
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
+
+		G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 
 		G_Obituary( self, attacker == self ? self : world, mod );
 	}
@@ -129,6 +133,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.type = ET_CORPSE;
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
+	body->r.svflags |= SVF_BROADCAST;
 
 	edict_t * event = G_SpawnEvent( EV_DIE, random_uniform( &svs.rng, 0, 256 ), NULL );
 	event->r.svflags |= SVF_BROADCAST;
@@ -163,8 +168,6 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 	ent->s.sound = EMPTY_HASH;
 
 	ent->r.solid = SOLID_NOT;
-
-	ent->r.client->teamstate.last_killer = attacker;
 
 	// player death
 	ClientObituary( ent, inflictor, attacker );
@@ -880,7 +883,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 /*
 * G_PredictedEvent
 */
-void G_PredictedEvent( int entNum, int ev, int parm ) {
+void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	edict_t *ent = &game.edicts[entNum];
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
@@ -1031,8 +1034,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
-	} else if( ent->s.type == ET_GIB ) {
-		client->ps.pmove.pm_type = PM_GIB;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
 		client->ps.pmove.pm_type = PM_SPECTATOR;
 	} else {

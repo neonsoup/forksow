@@ -200,12 +200,12 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		}
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
-			  || cent->current.type == ET_GIB || cent->current.type == ET_GRENADE
+			  || cent->current.type == ET_GRENADE
 			  || cent->current.type == ET_CORPSE ) ) {
 			cent->canExtrapolate = true;
 		}
 
-		if( ISBRUSHMODEL( cent->current.modelindex ) ) { // disable extrapolation on movers
+		if( CM_IsBrushModel( cent->current.model ) ) { // disable extrapolation on movers
 			cent->canExtrapolate = false;
 		}
 	}
@@ -384,7 +384,7 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 
 	// find the cmodel
 	if( cent->current.solid == SOLID_BMODEL ) { // special value for bmodel
-		cmodel = CM_InlineModel( cl.cms, cent->current.modelindex );
+		cmodel = CM_FindCModel( cent->current.model );
 	} else if( cent->current.solid ) {   // encoded bbox
 		x = 8 * ( cent->current.solid & 31 );
 		zd = 8 * ( ( cent->current.solid >> 5 ) & 31 );
@@ -426,7 +426,7 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
 
 	// set up the model
-	cent->ent.model = cent->current.model;
+	cent->ent.model = FindModel( cent->current.model );
 }
 
 /*
@@ -597,7 +597,7 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	}
 
 	// if set to invisible, skip
-	if( !cent->current.model != EMPTY_HASH || cent->current.team == TEAM_SPECTATOR ) {
+	if( cent->current.model != EMPTY_HASH || cent->current.team == TEAM_SPECTATOR ) {
 		return;
 	}
 
@@ -668,7 +668,6 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 //==================================================
 
 void CG_SoundEntityNewState( centity_t *cent ) {
-	int soundindex = cent->current.sound;
 	int owner = cent->current.ownerNum;
 	int channel = cent->current.channel & ~CHAN_FIXED;
 	bool fixed = ( cent->current.channel & CHAN_FIXED ) != 0;
@@ -775,12 +774,8 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 //		PACKET ENTITIES
 //==========================================================================
 
-void CG_EntityLoopSound( SyncEntityState * state ) {
-	if( !state->sound ) {
-		return;
-	}
-
-	S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, 1.0f );
+void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
+	cent->sound = S_ImmediateEntitySound( FindSoundEffect( state->sound ), state->number, 1.0f, cent->sound );
 }
 
 /*
@@ -810,35 +805,30 @@ void CG_AddEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
-				canLight = true;
-				break;
-			case ET_GIB:
-				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				canLight = true;
 				break;
 
 			case ET_ROCKET:
 				CG_AddGenericEnt( cent );
 				CG_ProjectileTrail( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				// CG_AddLightToScene( cent->ent.origin, 300, 0.8f, 0.6f, 0 );
 				break;
 			case ET_GRENADE:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				CG_ProjectileTrail( cent );
 				canLight = true;
 				break;
 			case ET_PLASMA:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				break;
 
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
 				CG_WeaponBeamEffect( cent );
 				canLight = true;
@@ -846,7 +836,7 @@ void CG_AddEntities( void ) {
 
 			case ET_CORPSE:
 				CG_AddPlayerEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				canLight = true;
 				break;
 
@@ -854,7 +844,7 @@ void CG_AddEntities( void ) {
 				break;
 
 			case ET_PUSH_TRIGGER:
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				break;
 
 			case ET_EVENT:
@@ -867,11 +857,7 @@ void CG_AddEntities( void ) {
 
 			case ET_LASER: {
 				CG_AddLaserEnt( cent );
-
-				const SoundEffect * sfx = cgs.soundPrecache[ state->sound ];
-				if( sfx != NULL ) {
-					S_ImmediateLineSound( sfx, state->number, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f );
-				}
+				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f, cent->sound );
 			} break;
 
 			case ET_SPIKES:
@@ -910,7 +896,6 @@ void CG_LerpEntities( void ) {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-			case ET_GIB:
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
@@ -976,12 +961,6 @@ void CG_UpdateEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 				CG_UpdateGenericEnt( cent );
-				break;
-			case ET_GIB:
-				CG_UpdateGenericEnt( cent );
-
-				// set the gib model ignoring the modelindex one
-				cent->ent.model = cgs.media.modGib;
 				break;
 
 			// projectiles with linear trajectories
@@ -1063,7 +1042,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 
 	// bmodel
 	if( origin != NULL ) {
-		const struct cmodel_s * cmodel = CM_InlineModel( cl.cms, cent->current.modelindex );
+		const struct cmodel_s * cmodel = CM_FindCModel( cent->current.model );
 		vec3_t mins, maxs;
 		CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
 		VectorAdd( maxs, mins, origin );

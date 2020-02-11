@@ -20,14 +20,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/cm_local.h"
+#include "qcommon/hashtable.h"
+#include "qcommon/string.h"
+
+constexpr u32 MAX_CMODELS = 1024;
+
+static cmodel_t cmodels[ MAX_CMODELS ];
+static u32 num_cmodels;
+static Hashtable< MAX_CMODELS * 2 > cmodels_hashtable;
 
 static bool cm_initialized = false;
 
 mempool_t *cmap_mempool;
 
 static cvar_t *cm_noAreas;
-
-static void CM_AllocateCheckCounts( CollisionModel *cms );
 
 /*
 * CM_AllocateCheckCounts
@@ -59,8 +65,6 @@ static void CM_FreeCheckCounts( CollisionModel *cms ) {
 * CM_Clear
 */
 static void CM_Clear( CollisionModel *cms ) {
-	int i;
-
 	if( cms->map_shaderrefs ) {
 		Mem_Free( cms->map_shaderrefs[0].name );
 		Mem_Free( cms->map_shaderrefs );
@@ -69,21 +73,29 @@ static void CM_Clear( CollisionModel *cms ) {
 	}
 
 	if( cms->map_faces ) {
-		for( i = 0; i < cms->numfaces; i++ )
+		for( int i = 0; i < cms->numfaces; i++ )
 			Mem_Free( cms->map_faces[i].facets );
 		Mem_Free( cms->map_faces );
 		cms->map_faces = NULL;
 		cms->numfaces = 0;
 	}
 
-	if( cms->map_cmodels != &cms->map_cmodel_empty ) {
-		for( i = 0; i < cms->numcmodels; i++ ) {
-			Mem_Free( cms->map_cmodels[i].markfaces );
-			Mem_Free( cms->map_cmodels[i].markbrushes );
-		}
-		Mem_Free( cms->map_cmodels );
-		cms->map_cmodels = &cms->map_cmodel_empty;
-		cms->numcmodels = 0;
+	for( u32 i = 0; i < cms->num_models; i++ ) {
+		String< 16 > suffix( "*{}", i );
+		u64 hash = Hash64( suffix.c_str(), suffix.len(), cms->base_hash );
+
+		u64 idx;
+		bool ok = cmodels_hashtable.get( hash, &idx );
+		assert( ok );
+
+		Mem_Free( cmodels[ idx ].markfaces );
+		Mem_Free( cmodels[ idx ].markbrushes );
+
+		num_cmodels--;
+		Swap2( &cmodels[ idx ], &cmodels[ num_cmodels ] );
+
+		cmodels_hashtable.update( cmodels[ idx ].hash, idx );
+		cmodels_hashtable.remove( cmodels[ num_cmodels ].hash );
 	}
 
 	if( cms->map_nodes ) {
@@ -166,10 +178,14 @@ MAP LOADING
 * CM_LoadMap
 * Loads in the map and all submodels
 */
-CollisionModel *CM_LoadMap( Span< const u8 > data ) {
+CollisionModel * CM_LoadMap( Span< const u8 > data, u64 base_hash ) {
 	ZoneScoped;
 
 	CollisionModel * cms = ( CollisionModel * ) Mem_Alloc( cmap_mempool, sizeof( CollisionModel ) );
+	cms->base_hash = base_hash;
+
+	const char * suffix = "*0";
+	cms->world_hash = Hash64( suffix, strlen( suffix ), base_hash );
 
 	CM_InitBoxHull( cms );
 	CM_InitOctagonHull( cms );
@@ -200,28 +216,38 @@ void CM_Free( CollisionModel *cms ) {
 	Mem_Free( cms );
 }
 
-/*
-* CM_InlineModel
-*/
-cmodel_t *CM_InlineModel( CollisionModel *cms, int num ) {
-	if( num < 0 || num >= cms->numcmodels ) {
-		Com_Error( ERR_DROP, "CM_InlineModel: bad number %i (%i)", num, cms->numcmodels );
-	}
-	return &cms->map_cmodels[num];
+cmodel_t * CM_NewCModel( u64 hash ) {
+	// TODO: bounds checking
+	cmodel_t * model = &cmodels[ num_cmodels ];
+	model->hash = hash;
+	cmodels_hashtable.add( hash, num_cmodels );
+	num_cmodels++;
+	return model;
 }
 
-/*
-* CM_NumInlineModels
-*/
-int CM_NumInlineModels( CollisionModel *cms ) {
-	return cms->numcmodels;
+cmodel_t * CM_TryFindCModel( StringHash hash ) {
+	u64 idx;
+	return cmodels_hashtable.get( hash.hash, &idx ) ? &cmodels[ idx ] : NULL;
+}
+
+cmodel_t * CM_FindCModel( StringHash hash ) {
+	cmodel_t * cmodel = CM_TryFindCModel( hash );
+	if( cmodel == NULL ) {
+		Com_Error( ERR_DROP, "FindCModel failed" );
+	}
+	return cmodel;
+}
+
+bool CM_IsBrushModel( StringHash hash ) {
+	u64 idx;
+	return cmodels_hashtable.get( hash.hash, &idx );
 }
 
 /*
 * CM_InlineModelBounds
 */
 void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, vec3_t mins, vec3_t maxs ) {
-	if( cmodel == cms->map_cmodels ) {
+	if( cmodel->hash == cms->world_hash ) {
 		VectorCopy( cms->world_mins, mins );
 		VectorCopy( cms->world_maxs, maxs );
 	} else {

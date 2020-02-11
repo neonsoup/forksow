@@ -644,7 +644,7 @@ edict_t *G_Spawn( void ) {
 /*
 * G_AddEvent
 */
-void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority ) {
+void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 	if( !ent || ent == world || !ent->r.inuse ) {
 		return;
 	}
@@ -661,15 +661,15 @@ void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority ) {
 		ent->numEvents++; // numEvents is only used to vary the overwritten event
 
 	}
-	ent->s.events[eventNum] = event;
-	ent->s.eventParms[eventNum] = parm & 0xFF;
+	ent->s.events[eventNum].type = event;
+	ent->s.events[eventNum].parm = parm;
 	ent->eventPriority[eventNum] = highPriority;
 }
 
 /*
 * G_SpawnEvent
 */
-edict_t *G_SpawnEvent( int event, int parm, const vec3_t origin ) {
+edict_t *G_SpawnEvent( int event, u64 parm, const vec3_t origin ) {
 	edict_t *ent;
 
 	ent = G_Spawn();
@@ -689,7 +689,7 @@ edict_t *G_SpawnEvent( int event, int parm, const vec3_t origin ) {
 /*
 * G_MorphEntityIntoEvent
 */
-void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm ) {
+void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
 	ent->r.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
@@ -1007,7 +1007,7 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 /*
 * G_PositionedSound
 */
-edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float attenuation ) {
+edict_t *G_PositionedSound( const vec3_t origin, int channel, StringHash sound ) {
 	if( sound == EMPTY_HASH ) {
 		return NULL;
 	}
@@ -1300,18 +1300,12 @@ void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
 * G_ReleaseClientPSEvent
 */
 void G_ReleaseClientPSEvent( gclient_t *client ) {
-	int i;
-
-	if( client ) {
-		for( i = 0; i < 2; i++ ) {
-			if( client->resp.eventsCurrent < client->resp.eventsHead ) {
-				client->ps.event[i] = client->resp.events[client->resp.eventsCurrent & MAX_CLIENT_EVENTS_MASK] & 127;
-				client->ps.eventParm[i] = ( client->resp.events[client->resp.eventsCurrent & MAX_CLIENT_EVENTS_MASK] >> 8 ) & 0xFF;
-				client->resp.eventsCurrent++;
-			} else {
-				client->ps.event[i] = PSEV_NONE;
-				client->ps.eventParm[i] = 0;
-			}
+	for( int i = 0; i < 2; i++ ) {
+		if( client->resp.eventsCurrent < client->resp.eventsHead ) {
+			client->ps.events[ i ] = client->resp.events[client->resp.eventsCurrent & MAX_CLIENT_EVENTS_MASK];
+			client->resp.eventsCurrent++;
+		} else {
+			client->ps.events[ i ] = { };
 		}
 	}
 }
@@ -1320,18 +1314,15 @@ void G_ReleaseClientPSEvent( gclient_t *client ) {
 * G_AddPlayerStateEvent
 * This event is only sent to this client inside its SyncPlayerState.
 */
-void G_AddPlayerStateEvent( gclient_t *client, int event, int parm ) {
-	int eventdata;
-	if( client ) {
-		if( !event || event > PSEV_MAX_EVENTS || parm > 0xFF ) {
-			return;
-		}
-		if( client ) {
-			eventdata = ( ( event & 0xFF ) | ( parm & 0xFF ) << 8 );
-			client->resp.events[client->resp.eventsHead & MAX_CLIENT_EVENTS_MASK] = eventdata;
-			client->resp.eventsHead++;
-		}
-	}
+void G_AddPlayerStateEvent( gclient_t *client, int ev, u64 parm ) {
+	assert( ev >= 0 && ev < PSEV_MAX_EVENTS );
+	if( client == NULL )
+		return;
+
+	SyncEvent * event = &client->resp.events[client->resp.eventsHead & MAX_CLIENT_EVENTS_MASK];
+	client->resp.eventsHead++;
+	event->type = ev;
+	event->parm = parm;
 }
 
 /*
@@ -1393,7 +1384,7 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 			return;
 		}
 
-		G_AddPlayerStateEvent( targ->r.client, psev, sound );
+		G_AddPlayerStateEvent( targ->r.client, psev, sound.hash );
 	} else {   // add it to all players
 		edict_t *ent;
 
@@ -1421,7 +1412,7 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 				}
 			}
 
-			G_AddPlayerStateEvent( ent->r.client, psev, sound );
+			G_AddPlayerStateEvent( ent->r.client, psev, sound.hash );
 		}
 	}
 }

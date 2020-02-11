@@ -4,9 +4,11 @@
 #include "client/client.h"
 #include "qcommon/version.h"
 #include "qcommon/string.h"
-#include "client/sdl/sdl_window.h"
 
 #include "cgame/cg_local.h"
+
+#define GLFW_INCLUDE_NONE
+#include "glfw3/GLFW/glfw3.h"
 
 enum UIState {
 	UIState_Hidden,
@@ -43,7 +45,12 @@ enum SettingsState {
 
 struct Server {
 	const char * address;
-	const char * info;
+
+	const char * name;
+	const char * map;
+	int ping;
+	int num_players;
+	int max_players;
 };
 
 static Server servers[ 1024 ];
@@ -65,8 +72,12 @@ static bool reset_video_settings;
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
 		free( const_cast< char * >( servers[ i ].address ) );
-		free( const_cast< char * >( servers[ i ].info ) );
+		free( const_cast< char * >( servers[ i ].name ) );
+		free( const_cast< char * >( servers[ i ].map ) );
 	}
+
+	memset( servers, 0, sizeof( servers ) );
+
 	num_servers = 0;
 	selected_server = -1;
 }
@@ -106,8 +117,6 @@ static void SettingLabel( const char * label ) {
 
 template< size_t maxlen >
 static void CvarTextbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
@@ -115,22 +124,22 @@ static void CvarTextbox( const char * label, const char * cvar_name, const char 
 	char buf[ maxlen + 1 ];
 	Q_strncpyz( buf, cvar->string, sizeof( buf ) );
 
-	const char * unique = temp( "##{}", cvar_name );
-	ImGui::InputText( unique, buf, sizeof( buf ) );
+	ImGui::PushID( cvar_name );
+	ImGui::InputText( "", buf, sizeof( buf ) );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, buf );
 }
 
 static void CvarCheckbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	bool val = cvar->integer != 0;
-	ImGui::Checkbox( unique, &val );
+	ImGui::PushID( cvar_name );
+	ImGui::Checkbox( "", &val );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
@@ -142,9 +151,10 @@ static void CvarSliderInt( const char * label, const char * cvar_name, int lo, i
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	int val = cvar->integer;
-	ImGui::SliderInt( unique, &val, lo, hi, format );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderInt( "", &val, lo, hi, format );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, temp( "{}", val ) );
 }
@@ -156,19 +166,17 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	float val = cvar->value;
-	ImGui::SliderFloat( unique, &val, lo, hi, "%.2f" );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderFloat( "", &val, lo, hi, "%.2f" );
+	ImGui::PopID();
 
-	char buf[ 128 ];
-	snprintf( buf, sizeof( buf ), "%f", val );
+	char * buf = temp( "{}", val );
 	RemoveTrailingZeroesFloat( buf );
 	Cvar_Set( cvar_name, buf );
 }
 
 static void KeyBindButton( const char * label, const char * command ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 	ImGui::PushID( label );
 
@@ -224,16 +232,15 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 
 	SettingLabel( label );
 	ImGui::PushItemWidth( 100 );
+	ImGui::PushID( cvar_name );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, temp( "{}", def ), CVAR_ARCHIVE );
-
-	const char * unique = temp( "##{}", cvar_name );
 
 	int selected = cvar->integer;
 	if( selected >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
 		selected = def;
 
-	if( ImGui::BeginCombo( unique, TEAM_COLORS[ selected ].name ) ) {
+	if( ImGui::BeginCombo( "", TEAM_COLORS[ selected ].name ) ) {
 		ImGui::Columns( 2, cvar_name, false );
 		ImGui::SetColumnWidth( 0, 0 );
 
@@ -247,6 +254,7 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 		ImGui::EndCombo();
 		ImGui::Columns( 1 );
 	}
+	ImGui::PopID();
 	ImGui::PopItemWidth();
 
 	Cvar_Set( cvar_name, temp( "{}", selected ) );
@@ -356,11 +364,11 @@ static void SettingsControls() {
 	ImGui::EndChild();
 }
 
-static const char * FullscreenModeToString( FullScreenMode mode ) {
+static const char * FullscreenModeToString( FullscreenMode mode ) {
 	switch( mode ) {
-		case FullScreenMode_Windowed: return "Windowed";
-		case FullScreenMode_FullscreenBorderless: return "Borderless";
-		case FullScreenMode_Fullscreen: return "Fullscreen";
+		case FullscreenMode_Windowed: return "Windowed";
+		case FullscreenMode_Borderless: return "Borderless";
+		case FullscreenMode_Fullscreen: return "Fullscreen";
 	}
 	return NULL;
 }
@@ -371,58 +379,96 @@ static void SettingsVideo() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	if( reset_video_settings ) {
-		mode = VID_GetWindowMode();
+		mode = GetWindowMode();
 		reset_video_settings = false;
 	}
 
 	SettingLabel( "Window mode" );
 	ImGui::PushItemWidth( 200 );
+
 	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {
-		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Windowed ), mode.fullscreen == FullScreenMode_Windowed ) ) {
-			mode.fullscreen = FullScreenMode_Windowed;
+		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Windowed ), mode.fullscreen == FullscreenMode_Windowed ) ) {
+			mode.fullscreen = FullscreenMode_Windowed;
 		}
-		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_FullscreenBorderless ), mode.fullscreen == FullScreenMode_FullscreenBorderless ) ) {
-			mode.fullscreen = FullScreenMode_FullscreenBorderless;
+		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Borderless ), mode.fullscreen == FullscreenMode_Borderless ) ) {
+			mode.fullscreen = FullscreenMode_Borderless;
 		}
-		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Fullscreen ), mode.fullscreen == FullScreenMode_Fullscreen ) ) {
-			mode.fullscreen = FullScreenMode_Fullscreen;
+		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Fullscreen ), mode.fullscreen == FullscreenMode_Fullscreen ) ) {
+			mode.fullscreen = FullscreenMode_Fullscreen;
 		}
 		ImGui::EndCombo();
 	}
 
-	if( mode.fullscreen == FullScreenMode_Windowed ) {
+	ImGui::PopItemWidth();
+
+	if( mode.fullscreen != FullscreenMode_Fullscreen ) {
 		mode.video_mode.frequency = 0;
 	}
-	else if( mode.fullscreen == FullScreenMode_FullscreenBorderless ) {
-		mode.video_mode.width = 0;
-		mode.video_mode.height = 0;
-		mode.video_mode.frequency = 0;
-	}
-	else if( mode.fullscreen == FullScreenMode_Fullscreen ) {
-		SettingLabel( "Resolution" );
-		ImGui::PushItemWidth( 200 );
 
-		if( mode.video_mode.frequency == 0 ) {
-			mode.video_mode = VID_GetVideoMode( 0 );
-		}
+	if( mode.fullscreen != FullscreenMode_Windowed ) {
+		int num_monitors;
+		GLFWmonitor ** monitors = glfwGetMonitors( &num_monitors );
 
-		if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
-			for( int i = 0; i < VID_GetNumVideoModes(); i++ ) {
-				VideoMode video_mode = VID_GetVideoMode( i );
+		if( num_monitors > 1 ) {
+			SettingLabel( "Monitor" );
+			ImGui::PushItemWidth( 400 );
 
-				bool is_selected = mode.video_mode.width == video_mode.width && mode.video_mode.height == video_mode.height && mode.video_mode.frequency == video_mode.frequency;
-				if( ImGui::Selectable( temp( "{}", video_mode ), is_selected ) ) {
-					mode.video_mode = video_mode;
+			if( ImGui::BeginCombo( "##monitor", glfwGetMonitorName( monitors[ mode.monitor ] ) ) ) {
+				for( int i = 0; i < num_monitors; i++ ) {
+					ImGui::PushID( i );
+					if( ImGui::Selectable( glfwGetMonitorName( monitors[ i ] ), mode.monitor == i ) ) {
+						mode.monitor = i;
+					}
+					ImGui::PopID();
 				}
+				ImGui::EndCombo();
 			}
-			ImGui::EndCombo();
+
+			ImGui::PopItemWidth();
 		}
-		ImGui::PopItemWidth();
+
+		if( mode.fullscreen == FullscreenMode_Fullscreen ) {
+			SettingLabel( "Resolution" );
+			ImGui::PushItemWidth( 200 );
+
+			if( mode.video_mode.frequency == 0 ) {
+				mode.video_mode = GetVideoMode( mode.monitor );
+			}
+
+			if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
+				int num_modes;
+				const GLFWvidmode * modes = glfwGetVideoModes( monitors[ mode.monitor ], &num_modes );
+
+				for( int i = 0; i < num_modes; i++ ) {
+					int idx = num_modes - i - 1;
+
+					VideoMode m = { };
+					m.width = modes[ idx ].width;
+					m.height = modes[ idx ].height;
+					m.frequency = modes[ idx ].refreshRate;
+
+					bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.frequency == m.frequency;
+					if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
+						mode.video_mode = m;
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::PopItemWidth();
+		}
 	}
 
-	if( !( mode == VID_GetWindowMode() ) ) {
+	if( mode != GetWindowMode() ) {
+		if( ImGui::Button( "Apply changes" ) ) {
+			if( !mode.fullscreen ) {
+				const GLFWvidmode * primary_mode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
+				mode.video_mode.width = primary_mode->width * 0.8f;
+				mode.video_mode.height = primary_mode->height * 0.8f;
+				mode.x = -1;
+				mode.y = -1;
+			}
 
-		if( ImGui::Button( "Apply" ) ) {
 			Cvar_Set( "vid_mode", temp( "{}", mode ) );
 			reset_video_settings = true;
 		}
@@ -432,9 +478,10 @@ static void SettingsVideo() {
 		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
 		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
 		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
-		if( ImGui::Button( "Discard" ) ) {
+		if( ImGui::Button( "Discard changes" ) ) {
 			reset_video_settings = true;
-		} ImGui::PopStyleColor( 3 );
+		}
+		ImGui::PopStyleColor( 3 );
 	}
 
 	ImGui::Separator();
@@ -463,9 +510,10 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		ImGui::SameLine();
-
-		ImGui::Text( "%sAnti-Aliasing is really costy for your frame rate", S_COLOR_RED );
+		if( samples > 1 ) {
+			ImGui::SameLine();
+			ImGui::Text( S_COLOR_RED "Enabling anti-aliasing can cause significant FPS drops!" );
+		}
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
 	}
@@ -540,27 +588,51 @@ static void Settings() {
 static void ServerBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
+	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
+	if( ImGui::Button( "discord.gg/5ZbV4mF" ) ) {
+		Sys_OpenInWebBrowser( "https://discord.gg/5ZbV4mF" );
+	}
+	ImGui::Separator();
+
 	if( ImGui::Button( "Refresh" ) ) {
 		RefreshServerBrowser();
 	}
 
 	ImGui::BeginChild( "servers" );
-	ImGui::Columns( 2, "serverbrowser", false );
-	ImGui::SetColumnWidth( 0, 200 );
-	ImGui::Text( "Address" );
+	ImGui::Columns( 4, "serverbrowser", false );
+
+	ImGui::Text( "Server" );
 	ImGui::NextColumn();
-	ImGui::Text( "Info" );
+	ImGui::Text( "Map" );
 	ImGui::NextColumn();
+	ImGui::Text( "Players" );
+	ImGui::NextColumn();
+	ImGui::Text( "Ping" );
+	ImGui::NextColumn();
+
 	for( int i = 0; i < num_servers; i++ ) {
-		if( ImGui::Selectable( servers[ i ].address, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+		const char * name = servers[ i ].name != NULL ? servers[ i ].name : servers[ i ].address;
+		if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
 				Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
 			}
 			selected_server = i;
 		}
 		ImGui::NextColumn();
-		ImGui::Text( "%s", servers[ i ].info );
-		ImGui::NextColumn();
+
+		if( servers[ i ].name == NULL ) {
+			ImGui::NextColumn();
+			ImGui::NextColumn();
+			ImGui::NextColumn();
+		}
+		else {
+			ImGui::Text( "%s", servers[ i ].map );
+			ImGui::NextColumn();
+			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+			ImGui::NextColumn();
+			ImGui::Text( "%d", servers[ i ].ping );
+			ImGui::NextColumn();
+		}
 	}
 
 	ImGui::Columns( 1 );
@@ -855,11 +927,13 @@ static void GameMenu() {
 		const bool bigger_font = window_size.y >= 864;
 
 		{
-			ImGui::Columns( 8, NULL, false );
+			ImGui::Columns( 10, NULL, false );
 			ImGui::SetColumnWidth( 0, window_size.x * 0.075f );
 			ImGui::SetColumnWidth( 1, icon_size.x );
 			ImGui::SetColumnWidth( 2, window_size.x * 0.05f );
 			ImGui::SetColumnWidth( 3, icon_size.x );
+			ImGui::SetColumnWidth( 4, window_size.x * 0.05f );
+			ImGui::SetColumnWidth( 5, icon_size.x );
 			ImGui::SetColumnWidth( 4, window_size.x * 0.05f );
 			ImGui::SetColumnWidth( 5, icon_size.x );
 			ImGui::SetColumnWidth( 6, window_size.x * 0.075f );
@@ -870,6 +944,7 @@ static void GameMenu() {
 				Weapon_Railgun,
 				Weapon_RocketLauncher,
 				Weapon_Laser,
+				Weapon_Sniper,
 				Weapon_Deagle,
 				Weapon_MachineGun,
 				Weapon_Shotgun,
@@ -1028,7 +1103,7 @@ static void GameMenu() {
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 
-			if( ImGui::Button( "OK", ImVec2( -1, button_height ) ) || ImGui::IsKeyPressed( K_ENTER ) ) {
+			if( ImGui::Button( "OK", ImVec2( -1, button_height ) ) || ImGui::CloseKey( K_ENTER ) ) {
 				DynamicString loadout( &temp, "weapselect" );
 				for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
 					if( selected_weapons[ i ] ) {
@@ -1061,7 +1136,7 @@ static void GameMenu() {
 		Settings();
 	}
 
-	if( ( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) || should_close ) {
+	if( ImGui::CloseKey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -1089,7 +1164,7 @@ static void DemoMenu() {
 	GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
 	GameMenuButton( "Exit to desktop", "quit", &should_close );
 
-	if( ( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) || should_close ) {
+	if( ImGui::CloseKey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -1167,11 +1242,30 @@ void UI_HideMenu() {
 	uistate = UIState_Hidden;
 }
 
-void UI_AddToServerList( const char * address, const char *info ) {
+void UI_AddToServerList( const char * address, const char * info ) {
+	for( int i = 0; i < num_servers; i++ ) {
+		if( strcmp( address, servers[ i ].address ) == 0 ) {
+			char name[ 128 ];
+			char map[ 32 ];
+			int parsed = sscanf( info, "\\\\ping\\\\%d\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &servers[ i ].ping, name, map, &servers[ i ].num_players, &servers[ i ].max_players );
+
+			if( parsed == 5 ) {
+				servers[ i ].name = strdup( name );
+				servers[ i ].map = strdup( map );
+			}
+
+			return;
+		}
+	}
+
 	if( size_t( num_servers ) < ARRAY_COUNT( servers ) ) {
 		servers[ num_servers ].address = strdup( address );
-		servers[ num_servers ].info = strdup( info );
 		num_servers++;
+
+		if( strcmp( info, "\\\\EOT" ) == 0 ) {
+			TempAllocator temp = cls.frame_arena.temp();
+			Cbuf_AddText( temp( "pingserver {}\n", address ) );
+		}
 	}
 }
 
