@@ -1813,7 +1813,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },
 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
 
-	{ "uint64 Hash64( const STring &in )", asFUNCTION( asFunc_Hash64 ), NULL },
+	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 
 	// projectile firing
 	{ "void G_FireBolt( const Vec3 &in origin, const Vec3 &in angles, int range, int damage, int knockback, Entity @owner )",asFUNCTION( asFunc_FireBolt ), NULL },

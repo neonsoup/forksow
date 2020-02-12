@@ -173,7 +173,7 @@ static bool CG_ClipEntityContact( const vec3_t origin, const vec3_t mins, const 
 	// convert the box to compare to absolute coordinates
 	VectorAdd( origin, mins, absmins );
 	VectorAdd( origin, maxs, absmaxs );
-	CM_TransformedBoxTrace( cl.cms, &tr, vec3_origin, vec3_origin, absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
+	CM_TransformedBoxTrace( CM_Client, cl.cms, &tr, vec3_origin, vec3_origin, absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
 	return tr.startsolid == true || tr.allsolid == true;
 }
 
@@ -236,7 +236,7 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 		}
 
 		if( ent->solid == SOLID_BMODEL ) { // special value for bmodel
-			cmodel = CM_FindCModel( ent->model );
+			cmodel = CM_FindCModel( CM_Client, ent->model );
 			if( !cmodel ) {
 				continue;
 			}
@@ -268,7 +268,7 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 			}
 		}
 
-		CM_TransformedBoxTrace( cl.cms, &trace, (float *)start, (float *)end, (float *)mins, (float *)maxs, cmodel, contentmask, origin, angles );
+		CM_TransformedBoxTrace( CM_Client, cl.cms, &trace, (float *)start, (float *)end, (float *)mins, (float *)maxs, cmodel, contentmask, origin, angles );
 		if( trace.allsolid || trace.fraction < tr->fraction ) {
 			trace.ent = ent->number;
 			*tr = trace;
@@ -287,7 +287,7 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 */
 void CG_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask ) {
 	// check against world
-	CM_TransformedBoxTrace( cl.cms, t, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
+	CM_TransformedBoxTrace( CM_Client, cl.cms, t, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
 	t->ent = t->fraction < 1.0 ? 0 : -1; // world entity is 0
 	if( t->fraction == 0 ) {
 		return; // blocked by the world
@@ -301,22 +301,17 @@ void CG_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t m
 * CG_PointContents
 */
 int CG_PointContents( const vec3_t point ) {
-	int i;
-	SyncEntityState *ent;
-	struct cmodel_s *cmodel;
-	int contents;
+	int contents = CM_TransformedPointContents( CM_Client, cl.cms, (float *)point, NULL, NULL, NULL );
 
-	contents = CM_TransformedPointContents( cl.cms, (float *)point, NULL, NULL, NULL );
-
-	for( i = 0; i < cg_numSolids; i++ ) {
-		ent = cg_solidList[i];
+	for( int i = 0; i < cg_numSolids; i++ ) {
+		const SyncEntityState * ent = cg_solidList[i];
 		if( ent->solid != SOLID_BMODEL ) { // special value for bmodel
 			continue;
 		}
 
-		cmodel = CM_FindCModel( ent->model );
+		struct cmodel_s * cmodel = CM_TryFindCModel( CM_Client, ent->model );
 		if( cmodel ) {
-			contents |= CM_TransformedPointContents( cl.cms, (float *)point, cmodel, ent->origin, ent->angles );
+			contents |= CM_TransformedPointContents( CM_Client, cl.cms, (float *)point, cmodel, ent->origin, ent->angles );
 		}
 	}
 

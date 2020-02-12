@@ -172,13 +172,18 @@ struct CollisionModel {
 	int *map_face_checkcheckouts;
 };
 
-CollisionModel *CM_LoadMap( Span< const u8 > data, u64 base_hash );
-void CM_Free( CollisionModel *cms );
+enum CModelServerOrClient {
+	CM_Client,
+	CM_Server,
+};
 
-struct cmodel_s * CM_FindCModel( StringHash hash );
-struct cmodel_s * CM_TryFindCModel( StringHash hash );
+CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u64 base_hash );
+void CM_Free( CModelServerOrClient soc,  CollisionModel * cms );
 
-bool CM_IsBrushModel( StringHash hash );
+struct cmodel_s * CM_FindCModel( CModelServerOrClient soc, StringHash hash );
+struct cmodel_s * CM_TryFindCModel( CModelServerOrClient soc, StringHash hash );
+
+bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash );
 
 int CM_NumClusters( CollisionModel *cms );
 int CM_NumAreas( CollisionModel *cms );
@@ -192,9 +197,9 @@ struct cmodel_s *CM_OctagonModelForBBox( CollisionModel *cms, vec3_t mins, vec3_
 void CM_InlineModelBounds( const CollisionModel *cms, const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
 
 // returns an ORed contents mask
-int CM_TransformedPointContents( CollisionModel *cms, const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
+int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
 
-void CM_TransformedBoxTrace( CollisionModel *cms, trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
+void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 							 struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles );
 
 int CM_ClusterRowSize( CollisionModel *cms );

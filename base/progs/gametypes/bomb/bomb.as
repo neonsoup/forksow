@@ -78,7 +78,7 @@ void bombModelCreate() {
 	bombModel.setSize( BOMB_MINS, BOMB_MAXS );
 	bombModel.solid = SOLID_TRIGGER;
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.modelindex = modelBombModel;
+	bombModel.model = modelBombModel;
 	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
 	bombModel.svflags |= SVF_BROADCAST;
 	@bombModel.touch = bomb_touch;
@@ -99,7 +99,7 @@ void bombInit() {
 
 void bombPickUp() {
 	bombCarrier.effects |= EF_CARRIER;
-	bombCarrier.modelindex2 = modelBombBackpack;
+	bombCarrier.model2 = modelBombBackpack;
 
 	hide( @bombModel );
 	hide( @bombHud );
@@ -112,7 +112,7 @@ void bombPickUp() {
 void bombSetCarrier( Entity @ent, bool no_sound ) {
 	if( @bombCarrier != null ) {
 		bombCarrier.effects &= ~EF_CARRIER;
-		bombCarrier.modelindex2 = 0;
+		bombCarrier.model2 = 0;
 	}
 
 	@bombCarrier = @ent;
@@ -177,7 +177,7 @@ void bombDrop( BombDrop drop_reason ) {
 	show( @bombModel );
 
 	bombCarrier.effects &= ~EF_CARRIER;
-	bombCarrier.modelindex2 = 0;
+	bombCarrier.model2 = 0;
 
 	@bombCarrier = null;
 
@@ -210,7 +210,7 @@ void bombStartPlanting( cBombSite @site ) {
 
 	// make carrier look normal
 	bombCarrier.effects &= ~EF_CARRIER;
-	bombCarrier.modelindex2 = 0;
+	bombCarrier.model2 = 0;
 
 	bombActionTime = levelTime;
 	bombState = BombState_Planting;
@@ -223,7 +223,7 @@ void bombPlanted() {
 
 	// add red dynamic light
 	bombModel.light = BOMB_LIGHT_ARMED;
-	bombModel.modelindex = modelBombModelActive;
+	bombModel.model = modelBombModelActive;
 	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
@@ -240,7 +240,7 @@ void bombPlanted() {
 
 void bombDefused() {
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.modelindex = modelBombModel;
+	bombModel.model = modelBombModel;
 
 	hide( @bombHud );
 
@@ -279,7 +279,7 @@ void resetBomb() {
 	hide( @bombModel );
 
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.modelindex = modelBombModel;
+	bombModel.model = modelBombModel;
 	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
 	bombModel.team = attackingTeam;

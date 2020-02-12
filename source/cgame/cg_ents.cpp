@@ -205,7 +205,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 			cent->canExtrapolate = true;
 		}
 
-		if( CM_IsBrushModel( cent->current.model ) ) { // disable extrapolation on movers
+		if( CM_IsBrushModel( CM_Client, cent->current.model ) != NULL ) { // disable extrapolation on movers
 			cent->canExtrapolate = false;
 		}
 	}
@@ -384,7 +384,7 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 
 	// find the cmodel
 	if( cent->current.solid == SOLID_BMODEL ) { // special value for bmodel
-		cmodel = CM_FindCModel( cent->current.model );
+		cmodel = CM_FindCModel( CM_Client, cent->current.model );
 	} else if( cent->current.solid ) {   // encoded bbox
 		x = 8 * ( cent->current.solid & 31 );
 		zd = 8 * ( ( cent->current.solid >> 5 ) & 31 );
@@ -1042,7 +1042,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 
 	// bmodel
 	if( origin != NULL ) {
-		const struct cmodel_s * cmodel = CM_FindCModel( cent->current.model );
+		const cmodel_t * cmodel = CM_FindCModel( CM_Client, cent->current.model );
 		vec3_t mins, maxs;
 		CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
 		VectorAdd( maxs, mins, origin );

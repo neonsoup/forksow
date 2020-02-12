@@ -457,7 +457,7 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const vec3_t mins
 * called after the world model has been loaded, before linking any entities
 */
 void GClip_ClearWorld( void ) {
-	cmodel_t * world_model = CM_FindCModel( StringHash( svs.cms->world_hash ) );
+	cmodel_t * world_model = CM_FindCModel( CM_Server, StringHash( svs.cms->world_hash ) );
 
 	vec3_t world_mins, world_maxs;
 	CM_InlineModelBounds( svs.cms, world_model, world_mins, world_maxs );
@@ -510,7 +510,7 @@ void GClip_LinkEntity( edict_t *ent ) {
 
 	if( ent->r.solid == SOLID_NOT || ( ent->r.svflags & SVF_PROJECTILE ) ) {
 		ent->s.solid = 0;
-	} else if( CM_IsBrushModel( ent->s.model ) ) {
+	} else if( CM_IsBrushModel( CM_Server, ent->s.model ) ) {
 		// the only predicted SOLID_TRIGGER entity is ET_PUSH_TRIGGER
 		if( ent->r.solid != SOLID_TRIGGER || ent->s.type == ET_PUSH_TRIGGER ) {
 			ent->s.solid = SOLID_BMODEL;
@@ -535,7 +535,7 @@ void GClip_LinkEntity( edict_t *ent ) {
 	}
 
 	// set the abs box
-	if( CM_IsBrushModel( ent->s.model ) && ( ent->s.angles[0] || ent->s.angles[1] || ent->s.angles[2] ) ) {
+	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ( ent->s.angles[0] || ent->s.angles[1] || ent->s.angles[2] ) ) {
 		// expand for rotation
 		float radius;
 
@@ -671,7 +671,7 @@ int GClip_AreaEdicts( const vec3_t mins, const vec3_t maxs,
 * object of mins/maxs size.
 */
 static struct cmodel_s *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
-	cmodel_t * model = CM_FindCModel( s->model );
+	cmodel_t * model = CM_FindCModel( CM_Server, s->model );
 	if( model != NULL ) {
 		return model;
 	}
@@ -698,7 +698,7 @@ static int GClip_PointContents( const vec3_t p, int timeDelta ) {
 	struct cmodel_s *cmodel;
 
 	// get base contents from world
-	contents = CM_TransformedPointContents( svs.cms, p, NULL, NULL, NULL );
+	contents = CM_TransformedPointContents( CM_Server, svs.cms, p, NULL, NULL, NULL );
 
 	// or in contents from all the other entities
 	num = GClip_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_SOLID, timeDelta );
@@ -709,7 +709,7 @@ static int GClip_PointContents( const vec3_t p, int timeDelta ) {
 		// might intersect, so do an exact clip
 		cmodel = GClip_CollisionModelForEntity( &clipEnt->s, &clipEnt->r );
 
-		c2 = CM_TransformedPointContents( svs.cms, p, cmodel, clipEnt->s.origin, clipEnt->s.angles );
+		c2 = CM_TransformedPointContents( CM_Server, svs.cms, p, cmodel, clipEnt->s.origin, clipEnt->s.angles );
 		contents |= c2;
 	}
 
@@ -788,13 +788,13 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 		// might intersect, so do an exact clip
 		cmodel = GClip_CollisionModelForEntity( &touch->s, &touch->r );
 
-		if( CM_IsBrushModel( touch->s.model ) ) {
+		if( CM_IsBrushModel( CM_Server, touch->s.model ) ) {
 			angles = touch->s.angles;
 		} else {
 			angles = vec3_origin; // boxes don't rotate
 
 		}
-		CM_TransformedBoxTrace( svs.cms, &trace, clip->start, clip->end,
+		CM_TransformedBoxTrace( CM_Server, svs.cms, &trace, clip->start, clip->end,
 									 clip->mins, clip->maxs, cmodel, clip->contentmask,
 									 touch->s.origin, angles );
 
@@ -867,7 +867,7 @@ static void GClip_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, con
 		tr->ent = -1;
 	} else {
 		// clip to world
-		CM_TransformedBoxTrace( svs.cms, tr, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
+		CM_TransformedBoxTrace( CM_Server, svs.cms, tr, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
 		tr->ent = tr->fraction < 1.0 ? world->s.number : -1;
 		if( tr->fraction == 0 ) {
 			return; // blocked by the world
@@ -911,11 +911,10 @@ void G_Trace4D( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t
 *
 * Also sets mins and maxs for inline bmodels
 */
-void GClip_SetBrushModel( edict_t *ent, StringHash hash ) {
-	ent->s.model = hash;
-
-	cmodel_t * cmodel = CM_FindCModel( hash );
+void GClip_SetBrushModel( edict_t * ent, StringHash hash ) {
+	cmodel_t * cmodel = CM_FindCModel( CM_Server, hash );
 	if( cmodel != NULL ) {
+		ent->s.model = hash;
 		CM_InlineModelBounds( svs.cms, cmodel, ent->r.mins, ent->r.maxs );
 	}
 }
@@ -931,10 +930,10 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent ) {
 		maxs = vec3_origin;
 	}
 
-	cmodel_t * model = CM_FindCModel( ent->s.model );
+	cmodel_t * model = CM_FindCModel( CM_Server, ent->s.model );
 	if( model != NULL ) {
 		trace_t tr;
-		CM_TransformedBoxTrace( svs.cms, &tr, vec3_origin, vec3_origin, mins, maxs, model,
+		CM_TransformedBoxTrace( CM_Server, svs.cms, &tr, vec3_origin, vec3_origin, mins, maxs, model,
 									 MASK_ALL, ent->s.origin, ent->s.angles );
 
 		return tr.startsolid || tr.allsolid ? true : false;

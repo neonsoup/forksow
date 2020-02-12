@@ -433,7 +433,7 @@ static int CM_PointContents( CollisionModel *cms, vec3_t p, cmodel_t *cmodel ) {
 * Handles offseting and rotation of the end points for moving and
 * rotating entities
 */
-int CM_TransformedPointContents( CollisionModel *cms, const vec3_t p, cmodel_t *cmodel, const vec3_t origin, const vec3_t angles ) {
+int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, const vec3_t p, cmodel_t *cmodel, const vec3_t origin, const vec3_t angles ) {
 	vec3_t p_l;
 
 	if( !cms->numnodes ) { // map not loaded
@@ -441,7 +441,7 @@ int CM_TransformedPointContents( CollisionModel *cms, const vec3_t p, cmodel_t *
 	}
 
 	if( !cmodel || cmodel->hash == cms->world_hash ) {
-		cmodel = CM_FindCModel( StringHash( cms->world_hash ) );
+		cmodel = CM_FindCModel( soc, StringHash( cms->world_hash ) );
 		origin = vec3_origin;
 		angles = vec3_origin;
 	} else {
@@ -1068,7 +1068,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 * Handles offseting and rotation of the end points for moving and
 * rotating entities
 */
-void CM_TransformedBoxTrace( CollisionModel *cms, trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
+void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 							 cmodel_t *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
 	vec3_t start_l, end_l;
 	vec3_t a, temp;
@@ -1081,7 +1081,7 @@ void CM_TransformedBoxTrace( CollisionModel *cms, trace_t *tr, const vec3_t star
 	}
 
 	if( !cmodel || cmodel->hash == cms->world_hash ) {
-		cmodel = CM_FindCModel( StringHash( cms->world_hash ) );
+		cmodel = CM_FindCModel( soc, StringHash( cms->world_hash ) );
 		origin = vec3_origin;
 		angles = vec3_origin;
 	} else {

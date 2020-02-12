@@ -20,20 +20,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/cm_local.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/string.h"
-
-constexpr u32 MAX_CMODELS = 1024;
-
-static cmodel_t cmodels[ MAX_CMODELS ];
-static u32 num_cmodels;
-static Hashtable< MAX_CMODELS * 2 > cmodels_hashtable;
 
 static bool cm_initialized = false;
 
 mempool_t *cmap_mempool;
 
 static cvar_t *cm_noAreas;
+
+static Hashmap< cmodel_t, 4096 > client_cmodels;
+static Hashmap< cmodel_t, 256 > server_cmodels;
+
+HashmapBase< cmodel_t > * GetCModels( CModelServerOrClient soc ) {
+	if( soc == CM_Client )
+		return &client_cmodels;
+	return &server_cmodels;
+}
 
 /*
 * CM_AllocateCheckCounts
@@ -64,7 +67,7 @@ static void CM_FreeCheckCounts( CollisionModel *cms ) {
 /*
 * CM_Clear
 */
-static void CM_Clear( CollisionModel *cms ) {
+static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 	if( cms->map_shaderrefs ) {
 		Mem_Free( cms->map_shaderrefs[0].name );
 		Mem_Free( cms->map_shaderrefs );
@@ -84,18 +87,8 @@ static void CM_Clear( CollisionModel *cms ) {
 		String< 16 > suffix( "*{}", i );
 		u64 hash = Hash64( suffix.c_str(), suffix.len(), cms->base_hash );
 
-		u64 idx;
-		bool ok = cmodels_hashtable.get( hash, &idx );
+		bool ok = GetCModels( soc )->remove( hash );
 		assert( ok );
-
-		Mem_Free( cmodels[ idx ].markfaces );
-		Mem_Free( cmodels[ idx ].markbrushes );
-
-		num_cmodels--;
-		Swap2( &cmodels[ idx ], &cmodels[ num_cmodels ] );
-
-		cmodels_hashtable.update( cmodels[ idx ].hash, idx );
-		cmodels_hashtable.remove( cmodels[ num_cmodels ].hash );
 	}
 
 	if( cms->map_nodes ) {
@@ -178,20 +171,21 @@ MAP LOADING
 * CM_LoadMap
 * Loads in the map and all submodels
 */
-CollisionModel * CM_LoadMap( Span< const u8 > data, u64 base_hash ) {
+CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u64 base_hash ) {
 	ZoneScoped;
 
 	CollisionModel * cms = ( CollisionModel * ) Mem_Alloc( cmap_mempool, sizeof( CollisionModel ) );
+
 	cms->base_hash = base_hash;
 
 	const char * suffix = "*0";
-	cms->world_hash = Hash64( suffix, strlen( suffix ), base_hash );
+	cms->world_hash = Hash64( suffix, strlen( suffix ), cms->base_hash );
 
 	CM_InitBoxHull( cms );
 	CM_InitOctagonHull( cms );
-	CM_Clear( cms );
+	CM_Clear( soc, cms );
 
-	CM_LoadQ3BrushModel( cms, data );
+	CM_LoadQ3BrushModel( soc, cms, data );
 
 	if( cms->numareas ) {
 		cms->map_areas = ( carea_t * ) Mem_Alloc( cmap_mempool, cms->numareas * sizeof( *cms->map_areas ) );
@@ -211,36 +205,29 @@ CollisionModel * CM_LoadMap( Span< const u8 > data, u64 base_hash ) {
 /*
 * CM_Free
 */
-void CM_Free( CollisionModel *cms ) {
-	CM_Clear( cms );
+void CM_Free( CModelServerOrClient soc, CollisionModel * cms ) {
+	CM_Clear( soc, cms );
 	Mem_Free( cms );
 }
 
-cmodel_t * CM_NewCModel( u64 hash ) {
-	// TODO: bounds checking
-	cmodel_t * model = &cmodels[ num_cmodels ];
-	model->hash = hash;
-	cmodels_hashtable.add( hash, num_cmodels );
-	num_cmodels++;
-	return model;
+cmodel_t * CM_NewCModel( CModelServerOrClient soc, u64 hash ) {
+	return GetCModels( soc )->add( hash );
 }
 
-cmodel_t * CM_TryFindCModel( StringHash hash ) {
-	u64 idx;
-	return cmodels_hashtable.get( hash.hash, &idx ) ? &cmodels[ idx ] : NULL;
+cmodel_t * CM_TryFindCModel( CModelServerOrClient soc, StringHash hash ) {
+	return GetCModels( soc )->get( hash.hash );
 }
 
-cmodel_t * CM_FindCModel( StringHash hash ) {
-	cmodel_t * cmodel = CM_TryFindCModel( hash );
+cmodel_t * CM_FindCModel( CModelServerOrClient soc, StringHash hash ) {
+	cmodel_t * cmodel = CM_TryFindCModel( soc, hash );
 	if( cmodel == NULL ) {
 		Com_Error( ERR_DROP, "FindCModel failed" );
 	}
 	return cmodel;
 }
 
-bool CM_IsBrushModel( StringHash hash ) {
-	u64 idx;
-	return cmodels_hashtable.get( hash.hash, &idx );
+bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash ) {
+	return CM_TryFindCModel( soc, hash ) != NULL;
 }
 
 /*

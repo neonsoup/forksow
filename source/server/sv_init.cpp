@@ -113,7 +113,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
 	u64 base_hash = Hash64( sv.configstrings[ CS_WORLDMODEL ], strlen( sv.configstrings[ CS_WORLDMODEL ] ) - strlen( ".bsp" ) );
-	svs.cms = CM_LoadMap( data, base_hash );
+	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
 
 	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%u", svs.cms->checksum );
 
@@ -304,7 +304,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	}
 
 	if( svs.cms ) {
-		CM_Free( svs.cms );
+		CM_Free( CM_Server, svs.cms );
 		svs.cms = NULL;
 	}
 

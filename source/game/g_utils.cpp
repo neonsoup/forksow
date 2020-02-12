@@ -709,7 +709,7 @@ void G_InitMover( edict_t *ent ) {
 
 	GClip_SetBrushModel( ent, ent->model );
 
-	ent->s.model2 = ent->model2;
+	ent->s.model2 = StringHash( ent->model2 );
 
 	if( ent->light || !VectorCompare( ent->color, vec3_origin ) ) {
 		int r, g, b, i;

@@ -41,7 +41,7 @@ void InitMaps() {
 		if( !LoadBSPRenderData( &maps[ num_maps ], path, base_hash, data ) )
 			continue;
 
-		maps[ num_maps ].cms = CM_LoadMap( data, base_hash );
+		maps[ num_maps ].cms = CM_LoadMap( CM_Client, data, base_hash );
 		if( maps[ num_maps ].cms == NULL )
 			// TODO: free render data
 			continue;
@@ -54,7 +54,7 @@ void InitMaps() {
 
 void ShutdownMaps() {
 	for( u32 i = 0; i < num_maps; i++ ) {
-		CM_Free( maps[ i ].cms );
+		CM_Free( CM_Client, maps[ i ].cms );
 	}
 }
 

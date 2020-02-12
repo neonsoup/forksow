@@ -504,7 +504,7 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 /*
 * CMod_LoadSubmodels
 */
-static void CMod_LoadSubmodels( CollisionModel *cms, lump_t *l ) {
+static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, lump_t *l ) {
 	const dmodel_t * in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Com_Error( ERR_DROP, "CMod_LoadSubmodels: funny lump size" );
@@ -520,7 +520,7 @@ static void CMod_LoadSubmodels( CollisionModel *cms, lump_t *l ) {
 		String< 16 > suffix( "*{}", i );
 		u64 hash = Hash64( suffix.c_str(), suffix.len(), cms->base_hash );
 
-		cmodel_t * model = CM_NewCModel( hash );
+		cmodel_t * model = CM_NewCModel( soc, hash );
 
 		model->faces = cms->map_faces;
 		model->nummarkfaces = LittleLong( in->numfaces );
@@ -866,7 +866,7 @@ static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 /*
 * CM_LoadQ3BrushModel
 */
-void CM_LoadQ3BrushModel( CollisionModel *cms, Span< const u8 > data ) {
+void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< const u8 > data ) {
 	dheader_t header;
 	memcpy( &header, data.ptr, sizeof( header ) );
 
@@ -900,7 +900,7 @@ void CM_LoadQ3BrushModel( CollisionModel *cms, Span< const u8 > data ) {
 	CMod_LoadMarkFaces( cms, &header.lumps[LUMP_LEAFFACES] );
 	CMod_LoadLeafs( cms, &header.lumps[LUMP_LEAFS] );
 	CMod_LoadNodes( cms, &header.lumps[LUMP_NODES] );
-	CMod_LoadSubmodels( cms, &header.lumps[LUMP_MODELS] );
+	CMod_LoadSubmodels( soc, cms, &header.lumps[LUMP_MODELS] );
 	CMod_LoadVisibility( cms, &header.lumps[LUMP_VISIBILITY] );
 	CMod_LoadEntityString( cms, &header.lumps[LUMP_ENTITIES] );
 

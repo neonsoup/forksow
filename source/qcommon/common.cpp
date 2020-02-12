@@ -255,7 +255,11 @@ void Com_Error( com_error_code_t code, const char *format, ... ) {
 		SV_ShutdownGame( va( "Server crashed: %s\n", msg ), false );
 		CL_Disconnect( msg );
 		recursive = false;
+#if PUBLIC_BUILD
 		longjmp( abortframe, -1 );
+#else
+		abort();
+#endif
 	} else {
 		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
 		SV_Shutdown( va( "Server fatal crashed: %s\n", msg ) );

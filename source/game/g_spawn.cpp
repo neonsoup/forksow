@@ -25,6 +25,7 @@ enum EntityFieldType {
 	F_FLOAT,
 	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
 	F_HASH,
+	F_MODELHASH,
 	F_VECTOR,
 	F_ANGLE,
 	F_RGBA,
@@ -42,8 +43,8 @@ struct EntityField {
 static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( model ), F_HASH },
-	{ "model2", FOFS( model2 ), F_HASH },
+	{ "model", FOFS( model ), F_MODELHASH },
+	{ "model2", FOFS( model2 ), F_MODELHASH },
 	{ "spawnflags", FOFS( spawnflags ), F_INT },
 	{ "speed", FOFS( speed ), F_FLOAT },
 	{ "target", FOFS( target ), F_LSTRING },
@@ -276,10 +277,17 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 			case F_LSTRING:
 				*(char **)( b + f.ofs ) = ED_NewString( value );
 				break;
-			case F_HASH: {
-				char * s = ED_NewString( value );
+			case F_HASH:
 				*(StringHash *)( b + f.ofs ) = StringHash( value );
-			} break;
+				break;
+			case F_MODELHASH:
+				if( value[ 0 ] == '*' ) {
+					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value, strlen( value ), svs.cms->base_hash ) );
+				}
+				else {
+					*(StringHash *)( b + f.ofs ) = StringHash( value );
+				}
+				break;
 			case F_INT:
 				*(int *)( b + f.ofs ) = atoi( value );
 				break;
@@ -618,7 +626,10 @@ static void SP_worldspawn( edict_t *ent ) {
 	ent->r.inuse = true;       // since the world doesn't use G_Spawn()
 	VectorClear( ent->s.origin );
 	VectorClear( ent->s.angles );
-	GClip_SetBrushModel( ent, "*0" ); // sets mins / maxs and modelindex 1
+
+	const char * model_name = "*0";
+	u64 hash = Hash64( model_name, strlen( model_name ), svs.cms->base_hash );
+	GClip_SetBrushModel( ent, StringHash( hash ) );
 
 	if( st.gravity ) {
 		level.gravity = atof( st.gravity );

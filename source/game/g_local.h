@@ -493,7 +493,7 @@ void GClip_BackUpCollisionFrame( void );
 int GClip_FindInRadius4D( vec3_t org, float rad, int *list, int maxcount, int timeDelta );
 void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld( void );
-void GClip_SetBrushModel( edict_t *ent, StringHash hash );
+void GClip_SetBrushModel( edict_t * ent, StringHash hash );
 void GClip_SetAreaPortalState( edict_t *ent, bool open );
 void GClip_LinkEntity( edict_t *ent );
 void GClip_UnlinkEntity( edict_t *ent );

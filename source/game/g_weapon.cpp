@@ -276,7 +276,7 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 	}
 
 	// don't explode on doors and plats that take damage
-	if( !other->takedamage || CM_IsBrushModel( other->s.model ) ) {
+	if( !other->takedamage || CM_IsBrushModel( CM_Server, other->s.model ) ) {
 		G_AddEvent( ent, EV_GRENADE_BOUNCE, 0, true );
 		return;
 	}
@@ -507,7 +507,7 @@ void W_Fire_Electrobolt( edict_t * self, vec3_t start, vec3_t angles, float dama
 		}
 
 		// allow trail to go through BBOX entities (players, gibs, etc)
-		if( !CM_IsBrushModel( hit->s.model ) ) {
+		if( !CM_IsBrushModel( CM_Server, hit->s.model ) ) {
 			ignore = hit;
 		}
 

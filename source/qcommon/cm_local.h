@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/hashmap.h"
+
 extern struct mempool_s * cmap_mempool;
 
 #define CM_SUBDIV_LEVEL     ( 16 )
@@ -29,7 +31,7 @@ extern struct mempool_s * cmap_mempool;
 // and to avoid various numeric issues
 #define SURFACE_CLIP_EPSILON    ( 0.125 )
 
-struct cmodel_s * CM_NewCModel( u64 hash );
+cmodel_t * CM_NewCModel( CModelServerOrClient soc, u64 hash );
 
 void    CM_InitBoxHull( CollisionModel *cms );
 void    CM_InitOctagonHull( CollisionModel *cms );
@@ -38,4 +40,4 @@ void    CM_FloodAreaConnections( CollisionModel *cms );
 
 void	CM_BoundBrush( cbrush_t *brush );
 
-void CM_LoadQ3BrushModel( CollisionModel *cms, Span< const u8 > data );
+void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< const u8 > data );
