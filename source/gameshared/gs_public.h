@@ -715,6 +715,7 @@ enum {
 	ET_GENERIC,
 	ET_PLAYER,
 	ET_CORPSE,
+	ET_GHOST,
 	ET_PUSH_TRIGGER,
 
 	ET_ROCKET,      // redlight + trail

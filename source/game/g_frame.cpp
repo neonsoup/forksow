@@ -394,13 +394,6 @@ void G_SnapFrame( void ) {
 			}
 			ent->r.svflags |= SVF_NOCLIENT;
 			continue;
-		} else if( !( ent->r.svflags & SVF_NOCLIENT ) && ent->s.model == EMPTY_HASH && !ent->s.effects
-				   && ent->s.sound == EMPTY_HASH && !ISEVENTENTITY( &ent->s ) && !ent->s.light && !ent->r.client && ent->s.type != ET_HUD ) {
-			if( developer->integer ) {
-				Com_Printf( "'G_SnapFrame': fixing missing SVF_NOCLIENT flag (no effect)\n" );
-			}
-			ent->r.svflags |= SVF_NOCLIENT;
-			continue;
 		}
 
 		ent->s.effects &= ~EF_TAKEDAMAGE;
@@ -482,10 +475,21 @@ static void G_RunClients( void ) {
 * G_RunFrame
 * Advances the world
 */
+void G_Aasdf();
 void G_RunFrame( unsigned int msec ) {
-	if( break1 ) trap_ConfigString(  CS_WORLDMODEL, "maps/cocaine.bsp" );
-	if( break2 ) trap_ConfigString(  CS_WORLDMODEL, "maps/dust.bsp" );
-	if( break3 ) trap_ConfigString(  CS_WORLDMODEL, "maps/carfentanil.bsp" );
+	if( break1 ) {
+		G_ChangeLevel( "cocaine" );
+		G_Aasdf();
+	}
+	if( break2 ) {
+		G_ChangeLevel( "gladiator" );
+		G_Aasdf();
+	}
+	if( break3 ) {
+		G_ChangeLevel( "carfentanil" );
+		G_Aasdf();
+	}
+
 	G_CheckCvars();
 
 	game.frametime = msec;

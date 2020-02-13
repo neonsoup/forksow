@@ -707,9 +707,7 @@ void G_InitMover( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.svflags &= ~SVF_NOCLIENT;
 
-	GClip_SetBrushModel( ent, ent->model );
-
-	ent->s.model2 = StringHash( ent->model2 );
+	GClip_SetBrushModel( ent );
 
 	if( ent->light || !VectorCompare( ent->color, vec3_origin ) ) {
 		int r, g, b, i;

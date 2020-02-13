@@ -49,7 +49,7 @@ static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
 static void InitTrigger( edict_t *self ) {
 	self->r.solid = SOLID_TRIGGER;
 	self->movetype = MOVETYPE_NONE;
-	GClip_SetBrushModel( self, self->model );
+	GClip_SetBrushModel( self );
 	self->r.svflags = SVF_NOCLIENT;
 }
 
@@ -102,7 +102,7 @@ static void trigger_enable( edict_t *self, edict_t *other, edict_t *activator ) 
 }
 
 void SP_trigger_multiple( edict_t *ent ) {
-	GClip_SetBrushModel( ent, ent->model );
+	GClip_SetBrushModel( ent );
 
 	if( st.noise != EMPTY_HASH ) {
 		ent->sound = st.noise;
@@ -483,5 +483,6 @@ void SP_trigger_teleport( edict_t *ent ) {
 	}
 
 	InitTrigger( ent );
+	GClip_LinkEntity( ent );
 	ent->touch = TeleporterTouch;
 }

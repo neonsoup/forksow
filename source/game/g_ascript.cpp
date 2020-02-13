@@ -1150,8 +1150,8 @@ static void objectGameEntity_GhostClient( edict_t *self ) {
 	}
 }
 
-static void objectGameEntity_SetupModel( u64 hash, edict_t *self ) {
-	GClip_SetBrushModel( self, StringHash( hash ) );
+static void objectGameEntity_SetupModel( edict_t *self ) {
+	GClip_SetBrushModel( self );
 }
 
 static void objectGameEntity_UseTargets( edict_t *activator, edict_t *self ) {
@@ -1294,7 +1294,7 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, spawnqueueAdd, ( ) ), asFUNCTION( G_SpawnQueue_AddClient ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, teleportEffect, ( bool ) ), asFUNCTION( objectGameEntity_TeleportEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, respawnEffect, ( ) ), asFUNCTION( G_RespawnEffect ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setupModel, ( uint64 hash ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setupModel, ( ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargets, ( ) const ), asFUNCTION( objectGameEntity_findTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargeting, ( ) const ), asFUNCTION( objectGameEntity_findTargeting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },
@@ -1323,7 +1323,7 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, weapon ), offsetof( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), offsetof( edict_t, s.teleported ) },
 	{ ASLIB_PROPERTY_DECL( uint, effects ), offsetof( edict_t, s.effects ) },
-	{ ASLIB_PROPERTY_DECL( int, sound ), offsetof( edict_t, s.sound ) },
+	{ ASLIB_PROPERTY_DECL( uint64, sound ), offsetof( edict_t, s.sound ) },
 	{ ASLIB_PROPERTY_DECL( int, team ), offsetof( edict_t, s.team ) },
 	{ ASLIB_PROPERTY_DECL( int, light ), offsetof( edict_t, s.light ) },
 	{ ASLIB_PROPERTY_DECL( const bool, inuse ), offsetof( edict_t, r.inuse ) },

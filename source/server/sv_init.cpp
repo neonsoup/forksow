@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/csprng.h"
-#include "qcommon/compression.h"
 #include "qcommon/hash.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
@@ -88,34 +87,11 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	svs.realtime = Sys_Milliseconds();
 	svs.gametime = 0;
 
-	Q_strncpyz( sv.mapname, mapname, sizeof( sv.mapname ) );
-
 	SV_SetServerConfigStrings();
 
 	sv.nextSnapTime = 1000;
 
-	// TODO: maybe get rid of the .bsp
-	snprintf( sv.configstrings[CS_WORLDMODEL], sizeof( sv.configstrings[CS_WORLDMODEL] ), "maps/%s.bsp", mapname );
-
-	u8 * buf;
-	int length = FS_LoadFile( sv.configstrings[ CS_WORLDMODEL ], ( void ** ) &buf, NULL, 0 );
-	if( buf == NULL ) {
-		Com_Error( ERR_FATAL, "Couldn't load %s", sv.configstrings[ CS_WORLDMODEL ] );
-	}
-
-	Span< const u8 > compressed = Span< const u8 >( buf, length );
-	Span< u8 > decompressed;
-	defer { FREE( sys_allocator, decompressed.ptr ); };
-	bool ok = Decompress( sv.configstrings[ CS_WORLDMODEL ], sys_allocator, compressed, &decompressed );
-	if( !ok ) {
-		Com_Error( ERR_FATAL, "Couldn't decompress %s", sv.configstrings[ CS_WORLDMODEL ] );
-	}
-
-	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
-	u64 base_hash = Hash64( sv.configstrings[ CS_WORLDMODEL ], strlen( sv.configstrings[ CS_WORLDMODEL ] ) - strlen( ".bsp" ) );
-	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
-
-	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%u", svs.cms->checksum );
+	G_ChangeLevel( mapname );
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );

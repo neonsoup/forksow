@@ -255,8 +255,7 @@ void misc_capture_area_indicator_think( Entity @ent ) {
 void trigger_capture_area( Entity @ent ) {
 	@ent.think = trigger_capture_area_think;
 	@ent.touch = trigger_capture_area_touch;
-	G_Print( "setupmodel " + ent.model + "\n" );
-	ent.setupModel( ent.model ); // set up the brush model
+	ent.setupModel(); // set up the brush model
 	ent.solid = SOLID_TRIGGER;
 	ent.linkEntity();
 

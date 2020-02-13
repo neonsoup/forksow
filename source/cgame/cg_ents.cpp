@@ -590,14 +590,14 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
-		if( !cg.view.thirdperson && cent->current.model != EMPTY_HASH ) {
+		if( !cg.view.thirdperson ) {
 			// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 			return;
 		}
 	}
 
 	// if set to invisible, skip
-	if( cent->current.model != EMPTY_HASH || cent->current.team == TEAM_SPECTATOR ) {
+	if( cent->current.team == TEAM_SPECTATOR ) { // TODO remove?
 		return;
 	}
 
@@ -840,6 +840,9 @@ void CG_AddEntities( void ) {
 				canLight = true;
 				break;
 
+			case ET_GHOST:
+				break;
+
 			case ET_LASERBEAM:
 				break;
 
@@ -901,6 +904,7 @@ void CG_LerpEntities( void ) {
 			case ET_GRENADE:
 			case ET_PLAYER:
 			case ET_CORPSE:
+			case ET_GHOST:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
@@ -973,6 +977,9 @@ void CG_UpdateEntities( void ) {
 			case ET_PLAYER:
 			case ET_CORPSE:
 				CG_UpdatePlayerModelEnt( cent );
+				break;
+
+			case ET_GHOST:
 				break;
 
 			case ET_LASERBEAM:

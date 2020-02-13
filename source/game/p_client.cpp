@@ -78,25 +78,19 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	edict_t * body = G_Spawn();
 
 	body->classname = "body";
+	body->s.type = ET_CORPSE;
 	body->health = ent->health;
 	body->mass = ent->mass;
 	body->r.owner = ent->r.owner;
-	body->s.type = ent->s.type;
 	body->s.team = ent->s.team;
-	body->s.effects = 0;
-	body->r.svflags = SVF_CORPSE;
-	body->r.svflags &= ~SVF_NOCLIENT;
+	body->r.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->activator = ent;
 	if( g_deadbody_followkiller->integer ) {
 		body->enemy = attacker;
 	}
 
 	//use flat yaw
-	body->s.angles[PITCH] = 0;
-	body->s.angles[ROLL] = 0;
 	body->s.angles[YAW] = ent->s.angles[YAW];
-	body->s.model2 = EMPTY_HASH;
-	body->s.weapon = 0;
 
 	//copy player position and box size
 	VectorCopy( ent->s.origin, body->s.origin );
@@ -114,6 +108,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->movetype = MOVETYPE_TOSS;
 	body->think = G_FreeEdict; // body self destruction countdown
 
+	body->s.teleported = true;
+	body->s.ownerNum = ent->s.number;
+
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
 		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
@@ -129,13 +126,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 		body->deadflag = DEAD_DEAD;
 	}
 
-	// copy the model
-	body->s.type = ET_CORPSE;
-	body->s.teleported = true;
-	body->s.ownerNum = ent->s.number;
-	body->r.svflags |= SVF_BROADCAST;
-
-	edict_t * event = G_SpawnEvent( EV_DIE, random_uniform( &svs.rng, 0, 256 ), NULL );
+	edict_t * event = G_SpawnEvent( EV_DIE, random_u64( &svs.rng ), NULL );
 	event->r.svflags |= SVF_BROADCAST;
 	event->s.ownerNum = body->s.number;
 
@@ -273,6 +264,7 @@ void G_GhostClient( edict_t *ent ) {
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
+	ent->s.type = ET_GHOST;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
 	ent->s.sound = EMPTY_HASH;

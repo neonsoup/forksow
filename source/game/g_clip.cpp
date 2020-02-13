@@ -671,7 +671,7 @@ int GClip_AreaEdicts( const vec3_t mins, const vec3_t maxs,
 * object of mins/maxs size.
 */
 static struct cmodel_s *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
-	cmodel_t * model = CM_FindCModel( CM_Server, s->model );
+	cmodel_t * model = CM_TryFindCModel( CM_Server, s->model );
 	if( model != NULL ) {
 		return model;
 	}
@@ -911,10 +911,9 @@ void G_Trace4D( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t
 *
 * Also sets mins and maxs for inline bmodels
 */
-void GClip_SetBrushModel( edict_t * ent, StringHash hash ) {
-	cmodel_t * cmodel = CM_FindCModel( CM_Server, hash );
+void GClip_SetBrushModel( edict_t * ent ) {
+	cmodel_t * cmodel = CM_TryFindCModel( CM_Server, ent->s.model );
 	if( cmodel != NULL ) {
-		ent->s.model = hash;
 		CM_InlineModelBounds( svs.cms, cmodel, ent->r.mins, ent->r.maxs );
 	}
 }
@@ -930,7 +929,7 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent ) {
 		maxs = vec3_origin;
 	}
 
-	cmodel_t * model = CM_FindCModel( CM_Server, ent->s.model );
+	cmodel_t * model = CM_TryFindCModel( CM_Server, ent->s.model );
 	if( model != NULL ) {
 		trace_t tr;
 		CM_TransformedBoxTrace( CM_Server, svs.cms, &tr, vec3_origin, vec3_origin, mins, maxs, model,

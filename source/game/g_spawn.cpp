@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/compression.h"
 #include "game/g_local.h"
 
 enum EntityFieldType {
@@ -43,8 +44,8 @@ struct EntityField {
 static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( model ), F_MODELHASH },
-	{ "model2", FOFS( model2 ), F_MODELHASH },
+	{ "model", FOFS( s.model ), F_MODELHASH },
+	{ "model2", FOFS( s.model2 ), F_MODELHASH },
 	{ "spawnflags", FOFS( spawnflags ), F_INT },
 	{ "speed", FOFS( speed ), F_FLOAT },
 	{ "target", FOFS( target ), F_LSTRING },
@@ -520,10 +521,6 @@ static void G_SpawnEntities( void ) {
 * parsing textual entity definitions out of an ent file.
 */
 void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime ) {
-	char *mapString = NULL;
-	char name[MAX_CONFIGSTRING_CHARS];
-	int i;
-
 	G_asGarbageCollect( true );
 
 	GT_asCallShutdown();
@@ -539,9 +536,8 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	}
 
 	// make a copy of the raw entities string so it's not freed with the pool
-	mapString = ( char * )G_Malloc( entstrlen + 1 );
-	memcpy( mapString, entities, entstrlen );
-	Q_strncpyz( name, mapname, sizeof( name ) );
+	char * mapString = ( char * )G_Malloc( entstrlen + 1 );
+	strcpy( mapString, entities );
 
 	// clear old data
 
@@ -556,21 +552,20 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	level.gravity = g_gravity->value;
 
 	// get the strings back
-	Q_strncpyz( level.mapname, name, sizeof( level.mapname ) );
+	Q_strncpyz( level.mapname, mapname, sizeof( level.mapname ) );
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
 	level.mapStrlen = entstrlen;
-	memcpy( level.mapString, mapString, entstrlen );
+	strcpy( level.mapString, entities );
 	G_Free( mapString );
 	mapString = NULL;
 
 	// make a copy of the raw entities string for parsing
 	level.map_parsed_ents = ( char * )G_LevelMalloc( entstrlen + 1 );
-	level.map_parsed_ents[0] = 0;
 
 	G_FreeEntities();
 
 	// link client fields on player ents
-	for( i = 0; i < server_gs.maxclients; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
 		game.edicts[i + 1].r.inuse = ( trap_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
@@ -620,6 +615,59 @@ void G_RespawnLevel( void ) {
 	G_InitLevel( level.mapname, level.mapString, level.mapStrlen, level.time );
 }
 
+void G_ChangeLevel( const char * name ) {
+	if( svs.cms != NULL ) {
+		CM_Free( CM_Server, svs.cms );
+	}
+
+	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
+
+	// TODO: maybe get rid of the .bsp
+	char path[ MAX_CONFIGSTRING_CHARS ];
+	snprintf( path, sizeof( path ), "maps/%s.bsp", name );
+	trap_ConfigString( CS_WORLDMODEL, path );
+
+	u8 * buf;
+	int length = FS_LoadFile( path, ( void ** ) &buf, NULL, 0 );
+	if( buf == NULL ) {
+		Com_Error( ERR_FATAL, "Couldn't load %s", path );
+	}
+
+	Span< const u8 > compressed = Span< const u8 >( buf, length );
+	Span< u8 > decompressed;
+	defer { FREE( sys_allocator, decompressed.ptr ); };
+	bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
+	if( !ok ) {
+		Com_Error( ERR_FATAL, "Couldn't decompress %s", path );
+	}
+
+	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
+	u64 base_hash = Hash64( path, strlen( path ) - strlen( ".bsp" ) );
+	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
+
+	char checksum[ 16 ];
+	snprintf( checksum, sizeof( checksum ), "%u", svs.cms->checksum );
+	trap_ConfigString( CS_MAPCHECKSUM, checksum );
+}
+
+void G_Aasdf() {
+	int len = CM_EntityStringLen( svs.cms );
+
+	G_LevelInitPool( strlen( sv.mapname ) + 1 + ( len + 1 ) * 2 + G_LEVELPOOL_BASE_SIZE );
+	G_StringPoolInit();
+
+	Q_strncpyz( level.mapname, sv.mapname, sizeof( level.mapname ) );
+
+	level.mapString = ( char * )G_LevelMalloc( len + 1 );
+	level.mapStrlen = len;
+
+	strcpy( level.mapString, CM_EntityString( svs.cms ) );
+
+	level.map_parsed_ents = ( char * )G_LevelMalloc( len + 1 );
+
+	G_ResetLevel();
+}
+
 static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
@@ -628,8 +676,8 @@ static void SP_worldspawn( edict_t *ent ) {
 	VectorClear( ent->s.angles );
 
 	const char * model_name = "*0";
-	u64 hash = Hash64( model_name, strlen( model_name ), svs.cms->base_hash );
-	GClip_SetBrushModel( ent, StringHash( hash ) );
+	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
+	GClip_SetBrushModel( ent );
 
 	if( st.gravity ) {
 		level.gravity = atof( st.gravity );

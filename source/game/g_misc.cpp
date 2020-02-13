@@ -319,6 +319,5 @@ void SP_misc_model( edict_t *ent ) {
 
 void SP_model( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
-	ent->s.model = StringHash( ent->model );
 	GClip_LinkEntity( ent );
 }

@@ -578,7 +578,10 @@ void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 	VectorCopy( state->origin, ground_position );
 	ground_position[ 2 ] += mins[ 2 ];
 
-	float volume = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
+	if( parm < 40 )
+		return;
+
+	float volume = ( parm - 40 ) / 300.0f;
 	if( ISVIEWERENTITY( state->number ) ) {
 		S_StartLocalSound( cgs.media.sfxFall, CHAN_AUTO, volume );
 	}
@@ -609,8 +612,7 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 		{ BOTH_DEAD2, BOTH_DEATH2 },
 		{ BOTH_DEAD3, BOTH_DEATH3 },
 	};
-	if( parm >= ARRAY_COUNT( animations ) )
-		return;
+	parm %= ARRAY_COUNT( animations );
 
 	CG_PlayerSound( entNum, CHAN_AUTO, PlayerSound_Death );
 	CG_PModel_AddAnimation( entNum, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );

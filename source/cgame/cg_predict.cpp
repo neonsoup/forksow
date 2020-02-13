@@ -237,9 +237,6 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 
 		if( ent->solid == SOLID_BMODEL ) { // special value for bmodel
 			cmodel = CM_FindCModel( CM_Client, ent->model );
-			if( !cmodel ) {
-				continue;
-			}
 
 			if( ent->linearMovement ) {
 				GS_LinearMovement( ent, serverTime, origin );
