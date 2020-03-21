@@ -122,20 +122,11 @@ enum {
 	VWEAP_MAXANIMS
 };
 
-enum {
-	WEAPMODEL_WEAPON,
-	WEAPMODEL_FLASH,
-	WEAPMODEL_HAND,
-	WEAPMODEL_BARREL,
-
-	VWEAP_MAXPARTS
-};
-
 // equivalent to pmodelinfo_t. Shared by different players, etc.
-typedef struct weaponinfo_s {
+struct WeaponModelMetadata {
 	bool inuse;
 
-	const Model *model[VWEAP_MAXPARTS]; // one weapon consists of several models
+	const Model * model;
 
 	int firstframe[VWEAP_MAXANIMS];         // animation script
 	int lastframe[VWEAP_MAXANIMS];
@@ -148,21 +139,11 @@ typedef struct weaponinfo_s {
 	vec3_t handpositionOrigin;
 	vec3_t handpositionAngles;
 
-	// flash
-	int64_t flashTime;
-	bool flashFade;
-	float flashRadius;
-	vec3_t flashColor;
-
-	// barrel
-	int64_t barrelTime;
-	float barrelSpeed;
-
 	const SoundEffect * fire_sound;
 	const SoundEffect * up_sound;
 	const SoundEffect * zoom_in_sound;
 	const SoundEffect * zoom_out_sound;
-} weaponinfo_t;
+};
 
 enum {
 	BASE_CHANNEL,
@@ -240,9 +221,6 @@ typedef struct {
 
 	// effects
 	orientation_t projectionSource;     // for projectiles
-	// weapon. Not sure about keeping it here
-	int64_t flash_time;
-	int64_t barrel_time;
 } pmodel_t;
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
@@ -277,10 +255,9 @@ void CG_PModel_ClearEventAnimations( int entNum );
 // cg_wmodels.c
 //
 void CG_WModelsInit();
-struct weaponinfo_s *CG_CreateWeaponZeroModel();
-struct weaponinfo_s *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
-void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weapon, int effects,
-	orientation_t *projectionSource, int64_t flash_time, int64_t barrel_time );
+WeaponModelMetadata *CG_CreateWeaponZeroModel();
+WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
+void CG_AddWeaponOnTag( entity_t *ent, const Mat4 & transform, int weapon, int effects, orientation_t *projectionSource );
 
 //=================================================
 //				VIEW WEAPON

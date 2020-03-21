@@ -34,7 +34,7 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 				  hand_origin, hand_axis,
 				  weap_origin, weap_axis );
 
-	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ cg.weapon.weapon ];
+	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ cg.weapon.weapon ];
 
 	// move to projectionSource tag
 	if( weaponInfo ) {
@@ -182,7 +182,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	}
 
 	baseAnim = CG_ViewWeapon_baseanimFromWeaponState( cg.predictedPlayerState.weapon_state );
-	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
+	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
 
 	// Full restart
 	if( !viewweapon->baseAnimStartTime ) {
@@ -249,8 +249,8 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	CG_ViewWeapon_RefreshAnimation( viewweapon );
 
-	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
-	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
+	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
+	viewweapon->ent.model = weaponInfo->model;
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.override_material = NULL;
 	viewweapon->ent.color = rgba8_white;
@@ -320,9 +320,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 * CG_AddViewWeapon
 */
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
-	orientation_t tag;
-	int64_t flash_time = 0;
-
 	if( !cg.view.drawWeapon || viewweapon->weapon == Weapon_Count ) {
 		return;
 	}
@@ -333,13 +330,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	CG_AddOutline( &viewweapon->ent, cg.effects, RGBA8( 0, 0, 0, viewweapon->ent.color.a ) );
 	CG_AddEntityToScene( &viewweapon->ent );
 
-	if( cg_weaponFlashes->integer == 2 ) {
-		flash_time = cg_entPModels[viewweapon->POVnum].flash_time;
-	}
-
 	// add attached weapon
-	if( CG_GrabTag( &tag, &viewweapon->ent, "tag_weapon" ) ) {
-		CG_AddWeaponOnTag( &viewweapon->ent, &tag, viewweapon->weapon, cg.effects, NULL, flash_time,
-			cg_entPModels[viewweapon->POVnum].barrel_time );
-	}
+	Mat4 transform = FromQFAxisAndOrigin( viewweapon->ent.axis, viewweapon->ent.origin );
+	CG_AddWeaponOnTag( &viewweapon->ent, transform, viewweapon->weapon, cg.effects, NULL );
 }

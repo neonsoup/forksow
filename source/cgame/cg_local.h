@@ -288,7 +288,7 @@ typedef struct {
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	weaponinfo_t *weaponInfos[ Weapon_Count + 1 ];
+	WeaponModelMetadata *weaponInfos[ Weapon_Count + 1 ];
 
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 

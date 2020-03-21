@@ -42,7 +42,6 @@ void CG_PModelsShutdown() {
 
 void CG_ResetPModels( void ) {
 	for( int i = 0; i < MAX_EDICTS; i++ ) {
-		cg_entPModels[i].flash_time = cg_entPModels[i].barrel_time = 0;
 		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
 	}
 	memset( &cg.weapon, 0, sizeof( cg.weapon ) );
@@ -945,9 +944,9 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// add weapon model
 	if( cent->current.weapon != Weapon_Count ) {
-		orientation_t tag_weapon = Mat4ToOrientation( TransformTag( meta->model, transform, pose, meta->tag_weapon ) );
-		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
-			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );
+		Mat4 transform = TransformTag( meta->model, transform, pose, meta->tag_weapon );
+		CG_AddWeaponOnTag( &cent->ent, transform, cent->current.weapon, cent->effects, &pmodel->projectionSource );
+		Com_Printf( "draw weapon\n" );
 	}
 
 	// add backpack/hat
