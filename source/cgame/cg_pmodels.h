@@ -230,9 +230,6 @@ extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_en
 //
 
 //utils
-bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname );
-void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, const orientation_t *tag );
-void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag );
 void CG_MoveToTag( vec3_t move_origin,
 				   mat3_t move_axis,
 				   const vec3_t space_origin,

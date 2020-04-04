@@ -175,7 +175,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	viewweapon->weapon = cg.predictedPlayerState.weapon;
 
 	// hack cause of missing animation config
-	if( viewweapon->weapon == Weapon_Count ) {
+	if( viewweapon->weapon == Weapon_None ) {
 		viewweapon->eventAnim = 0;
 		viewweapon->eventAnimStartTime = 0;
 		return;
@@ -308,19 +308,14 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		VectorScale( &viewweapon->ent.axis[AXIS_FORWARD], fracWeapFOV, &viewweapon->ent.axis[AXIS_FORWARD] );
 	}
 
-	// if the player doesn't want to view the weapon we still have to build the projection source
-	if( CG_GrabTag( &tag, &viewweapon->ent, "tag_weapon" ) ) {
-		CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, tag.origin, tag.axis );
-	} else {
-		CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, vec3_origin, axis_identity );
-	}
+	CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, vec3_origin, axis_identity );
 }
 
 /*
 * CG_AddViewWeapon
 */
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
-	if( !cg.view.drawWeapon || viewweapon->weapon == Weapon_Count ) {
+	if( !cg.view.drawWeapon || viewweapon->weapon == Weapon_None ) {
 		return;
 	}
 

@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "qcommon/assets.h"
 
-static WeaponModelMetadata cg_pWeaponModelInfos[ Weapon_Count + 1 ];
+static WeaponModelMetadata cg_pWeaponModelInfos[ Weapon_Count ];
 
 /*
 * CG_vWeap_ParseAnimationScript
@@ -218,8 +218,8 @@ WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType we
 * as a replacement, so, weapon 0 will have the animation script
 * even if the registration failed
 */
-WeaponModelMetadata *CG_CreateWeaponZeroModel() {
-	WeaponModelMetadata * weaponinfo = &cg_pWeaponModelInfos[ Weapon_Count ];
+WeaponModelMetadata * CG_CreateWeaponZeroModel() {
+	WeaponModelMetadata * weaponinfo = &cg_pWeaponModelInfos[ Weapon_None ];
 	if( weaponinfo->inuse ) {
 		return weaponinfo;
 	}

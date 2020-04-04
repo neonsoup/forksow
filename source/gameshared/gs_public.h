@@ -71,6 +71,8 @@ enum MatchState {
 
 typedef u8 WeaponType;
 enum WeaponType_ : WeaponType {
+	Weapon_None,
+
 	Weapon_Knife,
 	Weapon_Pistol,
 	Weapon_MachineGun,
@@ -283,11 +285,11 @@ struct SyncPlayerState {
 	// WeaponInfo weapons[ Weapon_Count ];
 
 	struct WeaponInfo {
-		bool owned;
+		WeaponType weapon;
 		int ammo;
 	};
 
-	WeaponInfo weapons[ Weapon_Count ];
+	WeaponInfo weapons[ Weapon_Count - 1 ];
 	bool items[ Item_Count ];
 
 	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
@@ -344,9 +346,6 @@ typedef struct {
 	vec3_t mins, maxs;          // bounding box size
 
 	int groundentity;
-	cplane_t groundplane;       // valid if groundentity >= 0
-	int groundsurfFlags;        // valid if groundentity >= 0
-	int groundcontents;         // valid if groundentity >= 0
 	int watertype;
 	int waterlevel;
 
@@ -592,30 +591,11 @@ enum {
 
 // vsay tokens list
 enum {
-	VSAY_AFFIRMATIVE,
-	VSAY_NEGATIVE,
-	VSAY_YES,
-	VSAY_NO,
-	VSAY_ONDEFENSE,
-	VSAY_ONOFFENSE,
-	VSAY_OOPS,
-	VSAY_SORRY,
-	VSAY_THANKS,
-	VSAY_NOPROBLEM,
-	VSAY_YEEHAA,
-	VSAY_GOODGAME,
-	VSAY_DEFEND,
-	VSAY_ATTACK,
-	VSAY_NEEDBACKUP,
-	VSAY_BOOO,
-	VSAY_NEEDDEFENSE,
-	VSAY_NEEDOFFENSE,
-	VSAY_NEEDHELP,
-	VSAY_ROGER,
-	VSAY_AREASECURED,
-	VSAY_SHUTUP,
-	VSAY_BOOMSTICK,
-	VSAY_OK,
+	Vsay_Sorry,
+	Vsay_Thanks,
+	Vsay_GoodGame,
+	Vsay_ShutUp,
+	Vsay_BoomStick,
 
 	Vsay_Bruh,
 	Vsay_Cya,
@@ -628,7 +608,7 @@ enum {
 	Vsay_Acne,
 	Vsay_Valley,
 
-	VSAY_TOTAL
+	Vsay_Total
 };
 
 // SyncEntityState->event values
@@ -804,9 +784,9 @@ struct WeaponDef {
 };
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
+SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
 WeaponType MODToWeapon( int mod );
-WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) );
-bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
+bool GS_CanEquip( SyncPlayerState * player, WeaponType weapon );

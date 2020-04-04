@@ -232,42 +232,6 @@ PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 //======================================================================
 
 /*
-* CG_GrabTag
-*/
-bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname ) {
-	return false;
-}
-
-/*
-* CG_PlaceRotatedModelOnTag
-*/
-void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag ) {
-	mat3_t tmpAxis;
-
-	VectorCopy( dest->origin, ent->origin );
-
-	for( int i = 0; i < 3; i++ )
-		VectorMA( ent->origin, tag->origin[i] * ent->scale, &dest->axis[i * 3], ent->origin );
-
-	VectorCopy( ent->origin, ent->origin2 );
-	Matrix3_Multiply( ent->axis, tag->axis, tmpAxis );
-	Matrix3_Multiply( tmpAxis, dest->axis, ent->axis );
-}
-
-/*
-* CG_PlaceModelOnTag
-*/
-void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, const orientation_t *tag ) {
-	VectorCopy( dest->origin, ent->origin );
-
-	for( int i = 0; i < 3; i++ )
-		VectorMA( ent->origin, tag->origin[i] * ent->scale, &dest->axis[i * 3], ent->origin );
-
-	VectorCopy( ent->origin, ent->origin2 );
-	Matrix3_Multiply( tag->axis, dest->axis, ent->axis );
-}
-
-/*
 * CG_MoveToTag
 * "move" tag must have an axis and origin set up. Use vec3_origin and axis_identity for "nothing"
 */
@@ -943,10 +907,9 @@ void CG_DrawPlayer( centity_t *cent ) {
 	CG_PModel_SpawnTeleportEffect( cent, pose );
 
 	// add weapon model
-	if( cent->current.weapon != Weapon_Count ) {
-		Mat4 transform = TransformTag( meta->model, transform, pose, meta->tag_weapon );
-		CG_AddWeaponOnTag( &cent->ent, transform, cent->current.weapon, cent->effects, &pmodel->projectionSource );
-		Com_Printf( "draw weapon\n" );
+	if( cent->current.weapon != Weapon_None ) {
+		Mat4 tag_transform = TransformTag( meta->model, transform, pose, meta->tag_weapon );
+		CG_AddWeaponOnTag( &cent->ent, tag_transform, cent->current.weapon, cent->effects, &pmodel->projectionSource );
 	}
 
 	// add backpack/hat
