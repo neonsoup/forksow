@@ -137,15 +137,10 @@ static void CG_CreateHandDefaultAnimations( WeaponModelMetadata *weaponinfo ) {
 	weaponinfo->loopingframes[WEAPANIM_STANDBY] = 1;
 	weaponinfo->frametime[WEAPANIM_STANDBY] = 1000 / defaultfps;
 
-	weaponinfo->firstframe[WEAPANIM_ATTACK_WEAK] = 1; // attack animation (1-5)
-	weaponinfo->lastframe[WEAPANIM_ATTACK_WEAK] = 5;
-	weaponinfo->loopingframes[WEAPANIM_ATTACK_WEAK] = 0;
-	weaponinfo->frametime[WEAPANIM_ATTACK_WEAK] = 1000 / defaultfps;
-
-	weaponinfo->firstframe[WEAPANIM_ATTACK_STRONG] = 0;
-	weaponinfo->lastframe[WEAPANIM_ATTACK_STRONG] = 0;
-	weaponinfo->loopingframes[WEAPANIM_ATTACK_STRONG] = 1;
-	weaponinfo->frametime[WEAPANIM_ATTACK_STRONG] = 1000 / defaultfps;
+	weaponinfo->firstframe[WEAPANIM_ATTACK] = 0;
+	weaponinfo->lastframe[WEAPANIM_ATTACK] = 0;
+	weaponinfo->loopingframes[WEAPANIM_ATTACK] = 1;
+	weaponinfo->frametime[WEAPANIM_ATTACK] = 1000 / defaultfps;
 
 	weaponinfo->firstframe[WEAPANIM_WEAPDOWN] = 0;
 	weaponinfo->lastframe[WEAPANIM_WEAPDOWN] = 0;

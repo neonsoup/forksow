@@ -388,8 +388,6 @@ extern centity_t cg_entities[MAX_EDICTS];
 //
 // cg_ents.c
 //
-extern cvar_t *cg_gun;
-
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
 struct cmodel_s *CG_CModelForEntity( int entNum );
 void CG_SoundEntityNewState( centity_t *cent );

@@ -308,7 +308,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 	// add animation to the view weapon model
 	if( ISVIEWERENTITY( entNum ) && !cg.view.thirdperson ) {
-		CG_ViewWeapon_StartAnimationEvent( weapon == Weapon_Knife ? WEAPANIM_ATTACK_WEAK : WEAPANIM_ATTACK_STRONG );
+		CG_ViewWeapon_StartAnimationEvent( WEAPANIM_ATTACK );
 	}
 
 	// recoil

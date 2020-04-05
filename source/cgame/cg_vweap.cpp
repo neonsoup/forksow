@@ -57,11 +57,13 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 * CG_ViewWeapon_AddAngleEffects
 */
 static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
-	if( !cg.view.drawWeapon ) {
-		return;
+	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
+		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
+		angles[ PITCH ] -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 	}
 
-	if( cg_gun->integer && cg_gunbob->integer ) {
+	if( cg_gunbob->integer ) {
 		// gun angles from bobbing
 		if( cg.bobCycle & 1 ) {
 			angles[ROLL] -= cg.xyspeed * cg.bobFracSin * 0.012;
@@ -242,7 +244,6 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 * CG_CalcViewWeapon
 */
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
-	orientation_t tag;
 	vec3_t gunAngles;
 	vec3_t gunOffset;
 	float handOffset;
@@ -284,7 +285,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	}
 
 	gunOffset[RIGHT] += handOffset;
-	if( cg_gun->integer && cg_gunbob->integer ) {
+	if( cg_gunbob->integer ) {
 		gunOffset[UP] += CG_ViewSmoothFallKick();
 	}
 
