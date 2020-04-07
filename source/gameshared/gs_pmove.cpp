@@ -205,125 +205,95 @@ static int PM_SlideMove( void ) {
 	vec3_t planes[MAX_CLIP_PLANES];
 	int numplanes = 0;
 	trace_t trace;
-	int moves, i, j, k;
+	int moves, i, j;
 	int maxmoves = 4;
 	float remainingTime = pml.frametime;
 	int blockedmask = 0;
+	bool before_crease_stage = true;
 
 	VectorCopy( pml.velocity, old_velocity );
 	VectorCopy( pml.origin, last_valid_origin );
 
-	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
+	if ( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
 		// if the ground is not horizontal (a ramp) clipping will slow the player down
-		if( pml.groundplane.normal[2] == 1.0f && pml.velocity[2] < 0.0f ) {
+		if ( pml.groundplane.normal[2] == 1.0f && pml.velocity[2] < 0.0f ) {
 			pml.velocity[2] = 0.0f;
 		}
 	}
 
 	numplanes = 0; // clean up planes count for checking
 
-	for( moves = 0; moves < maxmoves; moves++ ) {
+	for ( moves = 0; moves < maxmoves; moves++ ) {
 		VectorMA( pml.origin, remainingTime, pml.velocity, end );
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
-		if( trace.allsolid ) { // trapped into a solid
+		if ( trace.allsolid ) { // trapped into a solid
 			VectorCopy( last_valid_origin, pml.origin );
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
-		if( trace.fraction > 0 ) { // actually covered some distance
+		if ( trace.fraction > 0 ) { // actually covered some distance
 			VectorCopy( trace.endpos, pml.origin );
 			VectorCopy( trace.endpos, last_valid_origin );
 		}
 
-		if( trace.fraction == 1 ) {
-			break; // move done
-
+		if ( trace.fraction == 1 ) {
+			break;
 		}
-		// save touched entity for return output
+
 		PM_AddTouchEnt( trace.ent );
 
-		// at this point we are blocked but not trapped.
-
 		blockedmask |= SLIDEMOVEFLAG_BLOCKED;
-		if( trace.plane.normal[2] < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
+		if ( trace.plane.normal[2] < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
 			blockedmask |= SLIDEMOVEFLAG_WALL_BLOCKED;
 		}
 
 		remainingTime -= ( trace.fraction * remainingTime );
 
-		// we got blocked, add the plane for sliding along it
-
-		// if this is a plane we have touched before, try clipping
-		// the velocity along it's normal and repeat.
-		for( i = 0; i < numplanes; i++ ) {
-			if( DotProduct( trace.plane.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
+		for ( i = 0; i < numplanes; i++ ) {
+			if ( DotProduct( trace.plane.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
 				VectorAdd( trace.plane.normal, pml.velocity, pml.velocity );
 				break;
 			}
 		}
-		if( i < numplanes ) { // found a repeated plane, so don't add it, just repeat the trace
+		if ( i < numplanes ) { // found a repeated plane, so don't add it, just repeat the trace
 			continue;
 		}
 
 		// security check: we can't store more planes
-		if( numplanes >= MAX_CLIP_PLANES ) {
+		if ( numplanes >= MAX_CLIP_PLANES ) {
 			VectorClear( pml.velocity );
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
-		// put the actual plane in the list
-		VectorCopy( trace.plane.normal, planes[numplanes] );
-		numplanes++;
+		if ( before_crease_stage ) {
+			VectorCopy( trace.plane.normal, planes[numplanes] );
+			numplanes++;
 
-		//
-		// modify original_velocity so it parallels all of the clip planes
-		//
-
-		for( i = 0; i < numplanes; i++ ) {
-			if( DotProduct( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) { // would not touch it
-				continue;
-			}
-
+			i = numplanes - 1;
 			GS_ClipVelocity( pml.velocity, planes[i], pml.velocity, PM_OVERBOUNCE );
-			// see if we enter a second plane
-			for( j = 0; j < numplanes; j++ ) {
-				if( j == i ) { // it's the same plane
-					continue;
-				}
-				if( DotProduct( pml.velocity, planes[j] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
-					continue; // not with this one
 
-				}
-				//there was a second one. Try to slide along it too
-				GS_ClipVelocity( pml.velocity, planes[j], pml.velocity, PM_OVERBOUNCE );
+			for ( j = 0; j < i; j++ ) {
+				if ( DotProduct( pml.velocity, planes[j] ) < SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+					before_crease_stage = false;
 
-				// check if the slide sent it back to the first plane
-				if( DotProduct( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
-					continue;
-				}
+					CrossProduct( planes[i], planes[j], dir );
+					VectorNormalize( dir );
+					value = DotProduct( dir, pml.velocity );
+					VectorScale( dir, value, pml.velocity );
 
-				// bad luck: slide the original velocity along the crease
-				CrossProduct( planes[i], planes[j], dir );
-				VectorNormalize( dir );
-				value = DotProduct( dir, pml.velocity );
-				VectorScale( dir, value, pml.velocity );
-
-				// check if there is a third plane, in that case we're trapped
-				for( k = 0; k < numplanes; k++ ) {
-					if( j == k || i == k ) { // it's the same plane
-						continue;
-					}
-					if( DotProduct( pml.velocity, planes[k] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
-						continue; // not with this one
-					}
-					VectorClear( pml.velocity );
 					break;
 				}
 			}
 		}
+		else {
+			if ( DotProduct( pml.velocity, trace.plane.normal ) < SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+				VectorClear( pml.velocity );
+				break;
+			}
+		}
 	}
 
-	if( pm->playerState->pmove.pm_time ) {
+	if ( pm->playerState->pmove.pm_time ) {
 		VectorCopy( old_velocity, pml.velocity );
 	}
 
