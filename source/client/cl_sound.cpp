@@ -2,9 +2,11 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/assets.h"
 #include "qcommon/hash.h"
+#include "qcommon/array.h"
 #include "qcommon/hashtable.h"
 #include "client/client.h"
 #include "client/sound.h"
+#include "client/threadpool.h"
 #include "gameshared/gs_public.h"
 
 #define AL_LIBTYPE_STATIC
@@ -281,13 +283,65 @@ static void LoadSound( const char * path ) {
 	}
 }
 
+struct LoadSoundJob {
+	struct {
+		const char * path;
+		Span< const u8 > ogg;
+	} in;
+
+	struct {
+		int channels;
+		int sample_rate;
+		int num_samples;
+		s16 * samples;
+	} out;
+};
+
+static void LoadSoundWorker( void * data ) {
+	LoadSoundJob * job = ( LoadSoundJob * ) data;
+
+	ZoneScoped;
+	ZoneText( job->in.path, strlen( job->in.path ) );
+
+	job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
+	Com_Printf( "num_samples = %d\n", job->out.num_samples );
+}
+
 static void LoadSounds() {
 	ZoneScoped;
 
+	DynamicArray< LoadSoundJob > jobs( sys_allocator );
 	for( const char * path : AssetPaths() ) {
 		if( FileExtension( path ) == ".ogg" ) {
-			LoadSound( path );
+			LoadSoundJob job;
+			job.in.path = path;
+			job.in.ogg = AssetBinary( path );
+
+			jobs.add( job );
 		}
+	}
+
+	for( LoadSoundJob & j : jobs ) {
+		ThreadPoolDo( LoadSoundWorker, &j );
+	}
+
+	ThreadPoolFinish();
+
+	for( LoadSoundJob job : jobs ) {
+		if( job.out.num_samples == -1 ) {
+			Com_Printf( S_COLOR_RED "Couldn't decode sound %s\n", job.in.path );
+			continue;
+		}
+
+		ALenum format = job.out.channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+		alGenBuffers( 1, &sounds[ num_sounds ].buf );
+		Com_Printf( "num_samples = %d\n", job.out.num_samples );
+		alBufferData( sounds[ num_sounds ].buf, format, job.out.samples, job.out.num_samples * job.out.channels * sizeof( s16 ), job.out.sample_rate );
+		CheckALErrors();
+
+		free( job.out.samples );
+
+		num_sounds++;
 	}
 }
 
